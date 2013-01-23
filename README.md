@@ -147,6 +147,14 @@ written that code yet.
 
 [plv8]: http://code.google.com/p/plv8js/
 
+## Sharded clusters
+
+MoSQL does not have special support for sharded Mongo clusters at this
+time. It should be possible to run a separate MoSQL instance against
+each of the individual backend shard replica sets, streaming into
+separate PostgreSQL instances, but we have not actually tested this
+yet.
+
 # Development
 
 Patches and contributions are welcome! Please fork the project and
