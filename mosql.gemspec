@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-require File.expand_path('../lib/mosql/version', __FILE__)
+$:.unshift(File.expand_path("lib", File.dirname(__FILE__)))
+require 'mosql/version'
 
 Gem::Specification.new do |gem|
   gem.authors       = ["Nelson Elhage"]
