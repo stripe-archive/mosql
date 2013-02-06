@@ -108,10 +108,15 @@ state.
 
 You likely want to run `mosql` against a secondary node, at least for
 the initial import, which will cause large amounts of disk activity on
-the target node. One option is to use read preferences in your
-connection URI:
+the target node. One option is to specify this in your connect URI:
 
-    mosql --mongo mongodb://node1,node2,node3?readPreference=secondary
+    mosql --mongo mongodb://node1,node2,node3?slaveOk=true
+
+(You should be able to specify `?readPreference=secondary`, but the
+Mongo Ruby driver does not appear to support that usage. I've filed a
+[bug with 10gen][bug-read-pref] about this omission).
+
+[bug-read-pref]: https://jira.mongodb.org/browse/RUBY-547
 
 ## Advanced usage
 
