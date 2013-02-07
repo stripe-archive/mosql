@@ -86,6 +86,10 @@ module MoSQL
         opts.on("--reimport", "Force a data re-import") do
           @options[:reimport] = true
         end
+
+        opts.on("--no-drop-tables", "Don't drop the table if it exists during the initial import") do
+          @options[:no_drop_tables] = true
+        end
       end
 
       optparse.parse!(@args)
@@ -183,7 +187,7 @@ module MoSQL
     end
 
     def initial_import
-      @schemamap.create_schema(@sql.db, true)
+      @schemamap.create_schema(@sql.db, !options[:no_drop_tables])
 
       start_ts = @mongo['local']['oplog.rs'].find_one({}, {:sort => [['$natural', -1]]})['ts']
 
@@ -207,7 +211,7 @@ module MoSQL
       count = 0
       batch = []
       table = @sql.table_for_ns(ns)
-      table.truncate
+      table.truncate unless options[:no_drop_tables]
 
       start    = Time.now
       sql_time = 0
