@@ -292,7 +292,13 @@ module MoSQL
           log.debug("resync #{ns}: #{selector['_id']} (update was: #{update.inspect})")
           sync_object(ns, selector['_id'])
         else
-          log.debug("upsert #{ns}: _id=#{update['_id']}")
+          log.debug("upsert #{ns}: _id=#{selector['_id']}")
+
+          # The update operation replaces the existing object, but
+          # preserves its _id field, so grab the _id off of the
+          # 'query' field -- it's not guaranteed to be present on the
+          # update.
+          update = { '_id' => selector['_id'] }.merge(update)
           @sql.upsert_ns(ns, update)
         end
       when 'd'
