@@ -1,42 +1,37 @@
-GIT
-  remote: git@github.com:stripe-internal/mongoriver
-  revision: d5b5ca1471f9efe7c91b3abe2c26f612a2dd4e9c
-  ref: d5b5ca1471f9efe7c91b3abe2c26f612a2dd4e9c
-  specs:
-    mongoriver (0.0.1)
-      bson_ext
-      log4r
-      mongo (>= 1.7)
-
 PATH
   remote: .
   specs:
-    mosql (0.0.1)
+    mosql (0.1.0)
       bson_ext
       json
       log4r
       mongo
+      mongoriver
       pg
       rake
       sequel
 
 GEM
-  remote: https://intgems.stripe.com:446/
+  remote: https://rubygems.org/
   specs:
-    bson (1.7.1)
-    bson_ext (1.7.1)
-      bson (~> 1.7.1)
-    json (1.7.5)
+    bson (1.8.2)
+    bson_ext (1.8.2)
+      bson (~> 1.8.2)
+    json (1.7.6)
     log4r (1.1.10)
     metaclass (0.0.1)
     minitest (3.0.0)
     mocha (0.10.5)
       metaclass (~> 0.0.1)
-    mongo (1.7.1)
-      bson (~> 1.7.1)
+    mongo (1.8.2)
+      bson (~> 1.8.2)
+    mongoriver (0.1.0)
+      bson_ext
+      log4r
+      mongo (>= 1.7)
     pg (0.14.1)
-    rake (10.0.2)
-    sequel (3.41.0)
+    rake (10.0.3)
+    sequel (3.44.0)
 
 PLATFORMS
   ruby
@@ -44,5 +39,4 @@ PLATFORMS
 DEPENDENCIES
   minitest
   mocha
-  mongoriver!
   mosql!
