@@ -305,7 +305,7 @@ module MoSQL
         if options[:ignore_delete]
           log.debug("Ignoring delete op on #{ns} as instructed.")
         else
-          @sql.table_for_ns(ns).where(:_id => op['o']['_id']).delete
+          @sql.delete_ns(ns, op['o'])
         end
       else
         log.info("Skipping unknown op #{op.inspect}")
