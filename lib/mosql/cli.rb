@@ -253,11 +253,12 @@ module MoSQL
     end
 
     def sync_object(ns, _id)
+      sqlid = @sql.transform_one_ns(ns, { '_id' => _id })['_id']
       obj = collection_for_ns(ns).find_one({:_id => _id})
       if obj
         @sql.upsert_ns(ns, obj)
       else
-        @sql.table_for_ns(ns).where(:_id => _id).delete()
+        @sql.table_for_ns(ns).where(:_id => sqlid).delete()
       end
     end
 

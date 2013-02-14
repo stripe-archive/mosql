@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mosql (0.1.0)
+    mosql (0.1.1)
       bson_ext
       json
       log4r
@@ -17,7 +17,7 @@ GEM
     bson (1.8.2)
     bson_ext (1.8.2)
       bson (~> 1.8.2)
-    json (1.7.6)
+    json (1.7.7)
     log4r (1.1.10)
     metaclass (0.0.1)
     minitest (3.0.0)

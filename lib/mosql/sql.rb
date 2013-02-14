@@ -25,22 +25,24 @@ module MoSQL
       @db[@schema.table_for_ns(ns).intern]
     end
 
-
-    def upsert_ns(ns, obj)
+    def transform_one_ns(ns, obj)
       h = {}
       cols = @schema.all_columns(@schema.find_ns(ns))
       row  = @schema.transform(ns, obj)
       cols.zip(row).each { |k,v| h[k] = v }
+      h
+    end
+
+    def upsert_ns(ns, obj)
+      h = transform_one_ns(ns, obj)
       upsert(table_for_ns(ns), h)
     end
 
     # obj must contain an _id field. All other fields will be ignored.
     def delete_ns(ns, obj)
-      cols = @schema.all_columns(@schema.find_ns(ns))
-      row  = @schema.transform(ns, obj)
-      sqlid = row[cols.index("_id")]
-      raise "No _id found in transform of #{obj}" if sqlid.nil?
-      table_for_ns(ns).where(:_id => sqlid).delete
+      h = transform_one_ns(ns, obj)
+      raise "No _id found in transform of #{obj.inspect}" if h['_id'].nil?
+      table_for_ns(ns).where(:_id => h['_id']).delete
     end
 
     def upsert(table, item)
