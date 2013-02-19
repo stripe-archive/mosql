@@ -1,6 +1,6 @@
 require 'rake/testtask'
 
-task :default
+task :default => [:test]
 task :build
 
 Rake::TestTask.new do |t|
