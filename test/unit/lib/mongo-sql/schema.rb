@@ -111,6 +111,7 @@ EOF
       else
         assert(false, "Tried to create an unexpeced table: #{tbl}")
       end
+      o.expects(:primary_key).with([:id])
       o.instance_eval(&blk)
     end
     @map.create_schema(db)
