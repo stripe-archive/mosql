@@ -8,14 +8,20 @@ db:
     :meta:
       :table: sqltable
     :columns:
-      - _id: TEXT
-      - var: INTEGER
+      - id:
+        :source: _id
+        :type: TEXT
+      - var:
+        :source: var
+        :type: INTEGER
   with_extra_props:
     :meta:
       :table: sqltable2
       :extra_props: true
     :columns:
-      - _id: INTEGER
+      - id:
+        :source: _id
+        :type: INTEGER
 EOF
 
   before do
@@ -34,10 +40,10 @@ EOF
     end
   end
 
-  it 'Converts columns to an ordered hash' do
+  it 'Converts columns to an array' do
     table = @map.find_ns("db.collection")
-    assert(table[:columns].is_a?(Hash))
-    assert_equal(['_id', 'var'], table[:columns].keys)
+    assert(table[:columns].is_a?(Array))
+    #assert_equal(['_id', 'var'], table[:columns].keys)
   end
 
   it 'can create a SQL schema' do
@@ -51,11 +57,11 @@ EOF
   it 'creates a SQL schema with the right fields' do
     db = {}
     stub_1 = stub()
-    stub_1.expects(:column).with('_id', 'TEXT')
+    stub_1.expects(:column).with('id', 'TEXT')
     stub_1.expects(:column).with('var', 'INTEGER')
     stub_1.expects(:column).with('_extra_props').never
     stub_2 = stub()
-    stub_2.expects(:column).with('_id', 'INTEGER')
+    stub_2.expects(:column).with('id', 'INTEGER')
     stub_2.expects(:column).with('_extra_props', 'TEXT')
     (class << db; self; end).send(:define_method, :create_table?) do |tbl, &blk|
       case tbl
@@ -66,7 +72,7 @@ EOF
       else
         assert(false, "Tried to create an unexpeced table: #{tbl}")
       end
-      o.expects(:primary_key).with([:_id])
+      o.expects(:primary_key).with([:id])
       o.instance_eval(&blk)
     end
     @map.create_schema(db)
@@ -86,8 +92,8 @@ EOF
     end
 
     it 'gets all_columns right' do
-      assert_equal(['_id', 'var'], @map.all_columns(@map.find_ns('db.collection')))
-      assert_equal(['_id', '_extra_props'], @map.all_columns(@map.find_ns('db.with_extra_props')))
+      assert_equal(['id', 'var'], @map.all_columns(@map.find_ns('db.collection')))
+      assert_equal(['id', '_extra_props'], @map.all_columns(@map.find_ns('db.with_extra_props')))
     end
   end
 

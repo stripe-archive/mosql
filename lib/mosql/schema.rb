@@ -4,19 +4,23 @@ module MoSQL
   class Schema
     include MoSQL::Logging
 
-    def to_ordered_hash(lst)
-      hash = BSON::OrderedHash.new
+    def to_array(lst)
+      array = []
       lst.each do |ent|
-        raise "Invalid ordered hash entry #{ent.inspect}" unless ent.is_a?(Hash) && ent.keys.length == 1
-        field, type = ent.first
-        hash[field] = type
+        raise "Invalid ordered hash entry #{ent.inspect}" unless ent.is_a?(Hash) && ent[:source].is_a?(String) && ent[:type].is_a?(String)
+
+        array << {
+          :source => ent[:source],
+          :name   => ent.first.first,
+          :type   => ent[:type]
+        }
       end
-      hash
+      array
     end
 
     def parse_spec(spec)
       out = spec.dup
-      out[:columns] = to_ordered_hash(spec[:columns])
+      out[:columns] = to_array(spec[:columns])
       out
     end
 
@@ -35,13 +39,16 @@ module MoSQL
         meta = collection[:meta]
         log.info("Creating table '#{meta[:table]}'...")
         db.send(clobber ? :create_table! : :create_table?, meta[:table]) do
-          collection[:columns].each do |field, type|
-            column field, type
+          collection[:columns].each do |col|
+            column col[:name], col[:type]
+
+            if col[:source].to_sym == :_id
+              primary_key [col[:name].to_sym]
+            end
           end
           if meta[:extra_props]
             column '_extra_props', 'TEXT'
           end
-          primary_key [:_id]
         end
       end
     end
@@ -67,8 +74,12 @@ module MoSQL
 
       obj = obj.dup
       row = []
-      schema[:columns].each do |name, type|
-        v = obj.delete(name)
+      schema[:columns].each do |col|
+
+        source = col[:source]
+        type = col[:type]
+
+        v = obj.delete(source)
         case v
         when BSON::Binary, BSON::ObjectId
           v = v.to_s
@@ -91,7 +102,10 @@ module MoSQL
     end
 
     def all_columns(schema)
-      cols = schema[:columns].keys
+      cols = []
+      schema[:columns].each do |col|
+        cols << col[:name]
+      end
       if schema[:meta][:extra_props]
         cols << "_extra_props"
       end

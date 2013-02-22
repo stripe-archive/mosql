@@ -53,10 +53,18 @@ types. An example collection map might be:
     mongodb:
       blog_posts:
         :columns:
-        - _id: TEXT
-        - author: TEXT
-        - title: TEXT
-        - created: DOUBLE PRECISION
+        - id: 
+          :source: _id
+          :type: TEXT
+        - author: 
+          :source: author
+          :type: TEXT
+        - title:
+          :source: title 
+          :type: TEXT
+        - created: 
+          :source: created
+          :type: DOUBLE PRECISION
         :meta:
           :table: blog_posts
           :extra_props: true
