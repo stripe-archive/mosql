@@ -124,7 +124,7 @@ module MoSQL
     end
 
     def load_collections
-      collections = YAML.load(File.read(@options[:collections]))
+      collections = YAML.load_file(@options[:collections])
       @schemamap = MoSQL::Schema.new(collections)
     end
 
