@@ -106,8 +106,11 @@ module MoSQL
     def connect_mongo
       @mongo = Mongo::Connection.from_uri(options[:mongo])
       config = @mongo['admin'].command(:ismaster => 1)
-      if !config['setName']
-        log.warn("`#{options[:mongo]}' is not a replset. Proceeding anyways...")
+      if !config['setName'] && !options[:skip_tail]
+        log.warn("`#{options[:mongo]}' is not a replset.")
+        log.warn("Will run the initial import, then stop.")
+        log.warn("Pass `--skip-tail' to suppress this warning.")
+        options[:skip_tail] = true
       end
       options[:service] ||= config['setName']
     end
@@ -140,7 +143,9 @@ module MoSQL
         initial_import
       end
 
-      optail
+      unless options[:skip_tail]
+        optail
+      end
     end
 
     # Helpers
@@ -189,7 +194,9 @@ module MoSQL
     def initial_import
       @schemamap.create_schema(@sql.db, !options[:no_drop_tables])
 
-      start_ts = @mongo['local']['oplog.rs'].find_one({}, {:sort => [['$natural', -1]]})['ts']
+      unless options[:skip_tail]
+        start_ts = @mongo['local']['oplog.rs'].find_one({}, {:sort => [['$natural', -1]]})['ts']
+      end
 
       want_dbs = @schemamap.all_mongo_dbs & @mongo.database_names
       want_dbs.each do |dbname|
@@ -203,7 +210,7 @@ module MoSQL
         end
       end
 
-      tailer.write_timestamp(start_ts)
+      tailer.write_timestamp(start_ts) unless options[:skip_tail]
     end
 
     def import_collection(ns, collection)
@@ -240,8 +247,6 @@ module MoSQL
     end
 
     def optail
-      return if options[:skip_tail]
-
       tailer.tail_from(options[:tail_from] ?
                        BSON::Timestamp.new(options[:tail_from].to_i, 0) :
                        nil)
