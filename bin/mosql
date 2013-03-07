@@ -1,7 +1,5 @@
 #!/usr/bin/env ruby
 
-require 'rubygems'
-require 'bundler/setup'
 require 'mosql/cli'
 
 MoSQL::CLI.run(ARGV)
