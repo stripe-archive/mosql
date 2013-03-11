@@ -53,18 +53,16 @@ types. An example collection map might be:
     mongodb:
       blog_posts:
         :columns:
-        - id: 
+        - id:
           :source: _id
           :type: TEXT
-        - author: 
+        - author:
           :source: author
           :type: TEXT
         - title:
-          :source: title 
+          :source: title
           :type: TEXT
-        - created: 
-          :source: created
-          :type: DOUBLE PRECISION
+        - created: DOUBLE PRECISION
         :meta:
           :table: blog_posts
           :extra_props: true
@@ -75,9 +73,19 @@ mapping
     <Mongo DB name> -> { <Mongo Collection Name> -> <Collection Definition> }
 
 Where a `<Collection Definition>` is a hash with `:columns` and
-`:meta` fields. `:columns` is a list of one-element hashes, mapping
-field-name to SQL type. It is required to include at least an `_id`
-mapping. `:meta` contains metadata about this collection/table. It is
+`:meta` fields.
+
+`:columns` is a list of hashes mapping the field-name to an hash with the
+following keys:
+  * `:source`: the name of the attribute inside of MongoDB.
+  * `:type`: the SQL type.
+This syntax allows to rename MongoDB's attributes during the import. For example
+the `_id` attributes are going to be written inside of the `id` column.
+It's possible to use a one-element hash mapping the field-name to SQL type when
+the rename operation is not required. That's the case of the `created` attribute.
+It is required to include at least an `_id` mapping.
+
+`:meta` contains metadata about this collection/table. It is
 required to include at least `:table`, naming the SQL table this
 collection will be mapped to. `extra_props` determines the handling of
 unknown fields in MongoDB objects -- more about that later.
