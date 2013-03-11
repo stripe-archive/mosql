@@ -11,6 +11,14 @@ mosql_test:
     :columns:
       - _id: TEXT
       - var: INTEGER
+  renameid:
+    :meta:
+      :table: sqltable2
+    :columns:
+      - id:
+        :source: _id
+        :type: TEXT
+      - goats: INTEGER
 EOF
 
   def fake_cli
@@ -29,6 +37,7 @@ EOF
     @adapter = MoSQL::SQLAdapter.new(@map, sql_test_uri)
 
     @sequel.drop_table?(:sqltable)
+    @sequel.drop_table?(:sqltable2)
     @map.create_schema(@sequel)
 
     @cli = fake_cli
@@ -72,5 +81,33 @@ EOF
                      'o'  => { '$set' => { 'var' => 100 } },
                    })
     assert_equal(100, sequel[:sqltable].where(:_id => o['_id'].to_s).select.first[:var])
+  end
+
+  it 'handle "u" ops with $set and a renamed _id' do
+    o = { '_id' => BSON::ObjectId.new, 'goats' => 96 }
+    @adapter.upsert_ns('mosql_test.renameid', o)
+
+    # $set's are currently a bit of a hack where we read the object
+    # from the db, so make sure the new object exists in mongo
+    connect_mongo['mosql_test']['renameid'].insert(o.merge('goats' => 0),
+                                                   :w => 1)
+
+    @cli.handle_op({ 'ns' => 'mosql_test.renameid',
+                     'op' => 'u',
+                     'o2' => { '_id' => o['_id'] },
+                     'o'  => { '$set' => { 'goats' => 0 } },
+                   })
+    assert_equal(0, sequel[:sqltable2].where(:id => o['_id'].to_s).select.first[:goats])
+  end
+
+  it 'handles "d" ops with a renamed id' do
+    o = { '_id' => BSON::ObjectId.new, 'goats' => 1 }
+    @adapter.upsert_ns('mosql_test.renameid', o)
+
+    @cli.handle_op({ 'ns' => 'mosql_test.renameid',
+                     'op' => 'd',
+                     'o' => { '_id' => o['_id'] },
+                   })
+    assert_equal(0, sequel[:sqltable2].where(:id => o['_id'].to_s).count)
   end
 end

@@ -10,9 +10,9 @@ module MoSQL
         if ent.is_a?(Hash) && ent[:source].is_a?(String) && ent[:type].is_a?(String)
           # new configuration format
           array << {
-            :source => ent[:source],
+            :source => ent.delete(:source),
+            :type   => ent.delete(:type),
             :name   => ent.first.first,
-            :type   => ent[:type]
           }
         elsif ent.is_a?(Hash) && ent.keys.length == 1
           array << {
@@ -167,6 +167,10 @@ module MoSQL
 
     def collections_for_mongo_db(db)
       (@map[db]||{}).keys
+    end
+
+    def primary_sql_key_for_ns(ns)
+      find_ns!(ns)[:columns].find {|c| c[:source] == '_id'}[:name]
     end
   end
 end
