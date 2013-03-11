@@ -11,9 +11,7 @@ db:
       - id:
         :source: _id
         :type: TEXT
-      - var:
-        :source: var
-        :type: INTEGER
+      - var: INTEGER
   with_extra_props:
     :meta:
       :table: sqltable2
@@ -43,7 +41,18 @@ EOF
   it 'Converts columns to an array' do
     table = @map.find_ns("db.collection")
     assert(table[:columns].is_a?(Array))
-    #assert_equal(['_id', 'var'], table[:columns].keys)
+
+    id_mapping = table[:columns].find{|c| c[:source] == '_id'}
+    assert id_mapping
+    assert_equal '_id', id_mapping[:source]
+    assert_equal 'id', id_mapping[:name]
+    assert_equal 'TEXT', id_mapping[:type]
+
+    var_mapping = table[:columns].find{|c| c[:source] == 'var'}
+    assert var_mapping
+    assert_equal 'var', var_mapping[:source]
+    assert_equal 'var', var_mapping[:name]
+    assert_equal 'INTEGER', var_mapping[:type]
   end
 
   it 'can create a SQL schema' do

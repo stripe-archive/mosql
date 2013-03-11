@@ -7,13 +7,23 @@ module MoSQL
     def to_array(lst)
       array = []
       lst.each do |ent|
-        raise "Invalid ordered hash entry #{ent.inspect}" unless ent.is_a?(Hash) && ent[:source].is_a?(String) && ent[:type].is_a?(String)
+        if ent.is_a?(Hash) && ent[:source].is_a?(String) && ent[:type].is_a?(String)
+          # new configuration format
+          array << {
+            :source => ent[:source],
+            :name   => ent.first.first,
+            :type   => ent[:type]
+          }
+        elsif ent.is_a?(Hash) && ent.keys.length == 1
+          array << {
+            :source => ent.first.first,
+            :name   => ent.first.first,
+            :type   => ent.first.last
+          }
+        else
+          raise "Invalid ordered hash entry #{ent.inspect}"
+        end
 
-        array << {
-          :source => ent[:source],
-          :name   => ent.first.first,
-          :type   => ent[:type]
-        }
       end
       array
     end
