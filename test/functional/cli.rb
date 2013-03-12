@@ -8,6 +8,7 @@ mosql_test:
   collection:
     :meta:
       :table: sqltable
+      :callback: test/fixtures/collection_callback
     :columns:
       - _id: TEXT
       - var: INTEGER
@@ -29,6 +30,7 @@ EOF
     cli.instance_variable_set(:@schemamap, @map)
     cli.instance_variable_set(:@sql, @adapter)
     cli.instance_variable_set(:@options, {})
+    @map.init_callbacks(@adapter.db)
     cli
   end
 
@@ -41,12 +43,14 @@ EOF
     @map.create_schema(@sequel)
 
     @cli = fake_cli
+
+    @callback = @map.callback_for_ns('mosql_test.collection')
   end
 
   it 'handle "u" ops without _id' do
     o = { '_id' => BSON::ObjectId.new, 'var' => 17 }
+    @callback.expects(:after_upsert).with('_id' => o['_id'], 'var' => 27)
     @adapter.upsert_ns('mosql_test.collection', o)
-
     @cli.handle_op({ 'ns' => 'mosql_test.collection',
                      'op' => 'u',
                      'o2' => { '_id' => o['_id'] },
@@ -58,6 +62,7 @@ EOF
   it 'handle "d" ops with BSON::ObjectIds' do
     o = { '_id' => BSON::ObjectId.new, 'var' => 17 }
     @adapter.upsert_ns('mosql_test.collection', o)
+    @callback.expects(:after_delete).with('_id' => o['_id'])
 
     @cli.handle_op({ 'ns' => 'mosql_test.collection',
                      'op' => 'd',
@@ -74,6 +79,9 @@ EOF
     # from the db, so make sure the new object exists in mongo
     connect_mongo['mosql_test']['collection'].insert(o.merge('var' => 100),
                                                      :w => 1)
+
+    @callback.expects(:after_upsert).with('_id' => o['_id'],
+                                          'var' => 100)
 
     @cli.handle_op({ 'ns' => 'mosql_test.collection',
                      'op' => 'u',

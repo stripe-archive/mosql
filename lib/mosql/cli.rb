@@ -128,11 +128,16 @@ module MoSQL
       @schemamap = MoSQL::Schema.new(collections)
     end
 
+    def init_callbacks
+      @schemamap.init_callbacks(@sql.db)
+    end
+
     def run
       parse_args
       load_collections
       connect_sql
       connect_mongo
+      init_callbacks
 
       metadata_table = MoSQL::Tailer.create_table(@sql.db, 'mosql_tailers')
 
@@ -215,34 +220,51 @@ module MoSQL
 
     def import_collection(ns, collection)
       log.info("Importing for #{ns}...")
-      count = 0
-      batch = []
-      table = @sql.table_for_ns(ns)
+      count      = 0
+      batch_rows = []
+      batch_objs = []
+      callback   = @schemamap.callback_for_ns(ns)
+      table      = @sql.table_for_ns(ns)
       table.truncate unless options[:no_drop_tables]
 
-      start    = Time.now
-      sql_time = 0
+      start         = Time.now
+      sql_time      = 0
+      callback_time = 0
       collection.find(nil, :batch_size => BATCH) do |cursor|
         with_retries do
           cursor.each do |obj|
-            batch << @schemamap.transform(ns, obj)
+            batch_rows << @schemamap.transform(ns, obj)
+            batch_objs << obj if callback
             count += 1
 
-            if batch.length >= BATCH
+            if batch_rows.length >= BATCH
               sql_time += track_time do
-                bulk_upsert(table, ns, batch)
+                bulk_upsert(table, ns, batch_rows)
               end
               elapsed = Time.now - start
-              log.info("Imported #{count} rows (#{elapsed}s, #{sql_time}s SQL)...")
-              batch.clear
+              batch_rows.clear
+              if callback
+                callback_time += track_time do
+                  batch_objs.each do |obj|
+                    callback.after_upsert(obj)
+                  end
+                end
+                batch_objs.clear
+              end
+              log.info("Imported #{count} rows (#{elapsed}s, #{sql_time}s SQL #{callback_time}s callback)...")
               exit(0) if @done
             end
           end
         end
       end
 
-      unless batch.empty?
-        bulk_upsert(table, ns, batch)
+      unless batch_rows.empty?
+        bulk_upsert(table, ns, batch_rows)
+        if callback
+          batch_objs.each do |obj|
+            callback.after_upsert(obj)
+          end
+        end
       end
     end
 
@@ -261,10 +283,13 @@ module MoSQL
       primary_sql_key = @schemamap.primary_sql_key_for_ns(ns)
       sqlid           = @sql.transform_one_ns(ns, { '_id' => _id })[primary_sql_key]
       obj             = collection_for_ns(ns).find_one({:_id => _id})
+      callback        = @schemamap.callback_for_ns(ns)
       if obj
         @sql.upsert_ns(ns, obj)
+        callback.after_upsert(obj) if callback
       else
         @sql.table_for_ns(ns).where(primary_sql_key.to_sym => sqlid).delete()
+        callback.after_delete(:_id => sqlid) if callback
       end
     end
 
@@ -291,6 +316,9 @@ module MoSQL
           log.info("Skipping index update: #{op.inspect}")
         else
           @sql.upsert_ns(ns, op['o'])
+
+          callback = @schemamap.callback_for_ns(ns)
+          callback.after_upsert(op['o']) if callback
         end
       when 'u'
         selector = op['o2']
@@ -307,12 +335,18 @@ module MoSQL
           # update.
           update = { '_id' => selector['_id'] }.merge(update)
           @sql.upsert_ns(ns, update)
+
+          callback = @schemamap.callback_for_ns(ns)
+          callback.after_upsert(update) if callback
         end
       when 'd'
         if options[:ignore_delete]
           log.debug("Ignoring delete op on #{ns} as instructed.")
         else
           @sql.delete_ns(ns, op['o'])
+
+          callback = @schemamap.callback_for_ns(ns)
+          callback.after_delete(op['o']) if callback
         end
       else
         log.info("Skipping unknown op #{op.inspect}")

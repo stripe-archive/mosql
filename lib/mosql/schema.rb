@@ -35,7 +35,8 @@ module MoSQL
     end
 
     def initialize(map)
-      @map = {}
+      @callbacks = {}
+      @map       = {}
       map.each do |dbname, db|
         @map[dbname] ||= {}
         db.each do |cname, spec|
@@ -172,5 +173,38 @@ module MoSQL
     def primary_sql_key_for_ns(ns)
       find_ns!(ns)[:columns].find {|c| c[:source] == '_id'}[:name]
     end
+
+    def init_callbacks(sql_db)
+      @map.each do |db, collections|
+        collections.each do |collection, attributes|
+          meta = attributes[:meta]
+          next unless meta
+
+          callback = meta[:callback]
+          next unless callback
+
+          if !File.exists?("#{callback}.rb")
+            log.warn "Cannot find #{callback}.rb"
+            next
+          end
+
+          require File.expand_path(callback)
+          callback_class_name = File.basename(callback).camelize
+          if Kernel.const_defined?(callback_class_name)
+            callback_class = Kernel.const_get(callback_class_name)
+          else
+            log.warn "#{callback_class_name} class is not defined by #{callback}.rb"
+            next
+          end
+
+          @callbacks["#{db}.#{collection}"] = callback_class.new(sql_db)
+        end
+      end
+    end
+
+    def callback_for_ns(ns)
+      @callbacks[ns]
+    end
+
   end
 end

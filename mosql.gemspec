@@ -17,7 +17,7 @@ Gem::Specification.new do |gem|
   gem.version       = MoSQL::VERSION
 
   %w[sequel pg mongo bson_ext rake log4r json
-     mongoriver].each { |dep| gem.add_runtime_dependency(dep) }
+     mongoriver activesupport].each { |dep| gem.add_runtime_dependency(dep) }
 
   gem.add_development_dependency "minitest"
   gem.add_development_dependency "mocha"

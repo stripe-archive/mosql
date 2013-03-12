@@ -7,6 +7,7 @@ db:
   collection:
     :meta:
       :table: sqltable
+      :callback: test/fixtures/collection_callback
     :columns:
       - id:
         :source: _id
@@ -25,6 +26,22 @@ db:
       - _id: TEXT
     :meta:
       :table: sqltable3
+  without_callback_file:
+    :meta:
+      :table: sqltable4
+      :callback: test/fixtures/without_callback_file
+    :columns:
+      - id:
+        :source: _id
+        :type: TEXT
+  with_invalid_callback_file:
+    :meta:
+      :table: sqltable5
+      :callback: test/fixtures/with_invalid_callback_file
+    :columns:
+      - id:
+        :source: _id
+        :type: TEXT
 EOF
 
   before do
@@ -81,6 +98,8 @@ EOF
     db.expects(:create_table?).with('sqltable')
     db.expects(:create_table?).with('sqltable2')
     db.expects(:create_table?).with('sqltable3')
+    db.expects(:create_table?).with('sqltable4')
+    db.expects(:create_table?).with('sqltable5')
 
     @map.create_schema(db)
   end
@@ -100,6 +119,14 @@ EOF
     stub_3.expects(:column).with('_id', 'TEXT')
     stub_3.expects(:column).with('_extra_props').never
     stub_3.expects(:primary_key).with([:_id])
+    stub_4 = stub()
+    stub_4.expects(:column).with('id', 'TEXT')
+    stub_4.expects(:column).with('_extra_props').never
+    stub_4.expects(:primary_key).with([:id])
+    stub_5 = stub()
+    stub_5.expects(:column).with('id', 'TEXT')
+    stub_5.expects(:column).with('_extra_props').never
+    stub_5.expects(:primary_key).with([:id])
     (class << db; self; end).send(:define_method, :create_table?) do |tbl, &blk|
       case tbl
       when "sqltable"
@@ -108,10 +135,13 @@ EOF
         o = stub_2
       when "sqltable3"
         o = stub_3
+      when "sqltable4"
+        o = stub_4
+      when "sqltable5"
+        o = stub_5
       else
         assert(false, "Tried to create an unexpeced table: #{tbl}")
       end
-      o.expects(:primary_key).with([:id])
       o.instance_eval(&blk)
     end
     @map.create_schema(db)
@@ -144,4 +174,32 @@ EOF
       assert_equal(%Q{some text}, @map.quote_copy(%Q{some text}))
     end
   end
+
+  describe 'when initializing callbacks' do
+    before do
+      @db = mock()
+      @map.init_callbacks(@db)
+    end
+
+    it 'does not allocate the callback instance when the rb file is not found' do
+      assert_nil @map.callback_for_ns('db.without_callback_file')
+    end
+
+    it 'does not allocate the callback instance when the callback naming conventions are not respected' do
+      assert_nil @map.callback_for_ns('db.with_invalid_callback_file')
+    end
+
+    it 'does not allocate the callback instance when no callback is defined' do
+      assert_nil @map.callback_for_ns('db.with_extra_props')
+    end
+
+    it 'can allocate the callback instance' do
+      callback = @map.callback_for_ns('db.collection')
+      assert callback
+      assert_equal 'CollectionCallback', callback.class.to_s
+      assert_equal @db, callback.instance_variable_get(:@db)
+    end
+
+  end
+
 end
