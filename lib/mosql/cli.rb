@@ -208,7 +208,11 @@ module MoSQL
         log.info("Importing for Mongo DB #{dbname}...")
         db = @mongo.db(dbname)
         want = Set.new(@schemamap.collections_for_mongo_db(dbname))
-        db.collections.select { |c| want.include?(c.name) }.each do |collection|
+        db.collections.select do |c|
+           want.include?(c.name)
+        end.sort_by do |c|
+          @schemamap.import_order_for_ns("#{dbname}.#{c.name}")
+        end.each do |collection|
           ns = "#{dbname}.#{collection.name}"
           import_collection(ns, collection)
           exit(0) if @done

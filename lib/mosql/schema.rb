@@ -206,5 +206,9 @@ module MoSQL
       @callbacks[ns]
     end
 
+    def import_order_for_ns(ns)
+      find_ns!(ns)[:meta][:import_order] || 100
+    end
+
   end
 end
