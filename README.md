@@ -151,6 +151,120 @@ cluster.
 If you need to force a fresh reimport, run `--reimport`, which will
 cause `mosql` to drop tables, create them anew, and do another import.
 
+
+### Callbacks
+
+It's possible to define special callback on a collection basis to allow the
+execution of custom code whenever an item is inserted, updated or deleted from
+MongoDB.
+
+Callbacks are implemented by subclassing the `MoSQL::Callback' class and
+defining one these methods:
+
+  * `after_upsert(obj)`: this is called whenever a MongoDB object is inserted
+    or updated. The callback is invoked after the object has been written to
+    PostgreSQL.
+    `obj` is a MongoDB object as seen from the oplog; hence it might contain
+    also the attributes that are not being mapped to PostgreSQL's columns.
+  * `after_delete(obj)`: this is called whenever an object is delted from
+    MongoDB. The callback is invoked after the operation has been propagated to
+    PostgreSQL.
+    `obj` is the a MongoDB object as seen from the oplog; hence it might contain
+    also the attributes that are not being mapped to PostgreSQL's columns.
+
+The `MoSQL::Callback` class provides a `log` method which allows to use MoSQL's
+logging facility.
+
+Access to the PostgreSQL database can be obtained usign the `@sql` class intance
+variable.
+
+Callbacks must then be defined inside of the `meta` section of the collection
+map file.
+
+A possible use of callbacks is the creation of relational tables.
+
+For example, consider a simple Rails application that includes a model for
+customers and a model for orders. Each customer can have many orders.
+
+Inside of MongoDB this relation is implemented using a `customer_id`
+attribute inside of the `orders` collection.
+
+Inside of PostgreSQL the `order` table is going to have two 'special' columns:
+
+  * `customer_id`: this is going to store the SQL id of the customer.
+  * `customer_mongodb_id`: this is going to store the `BSON::ObjectId` of
+    the customer.
+
+This is the configuration file used by mosql:
+
+    db:
+      customer:
+        :columns:
+        - _id: TEXT
+        - name: TEXT
+        :meta:
+          :table: customers
+          :import_order: 1
+          :extra_props: false
+      orders:
+        :columns:
+        - _id: TEXT
+        - customer_mongodb_id:
+          :source: customer_id
+          :type: TEXT
+        :meta:
+          :table: orders
+          :callback: my_callbacks/orders_callback
+          :extra_props: false
+
+The configuration file will automaticaly map `db.orders.customer_id` to the
+`customer_mongodb_id` inside of PostgreSQL.
+
+During the initial import of the database the `customers` table is going to
+imported before the `orders` table. This is ensured using the `import_order = 1`
+directive inside of the `meta` section. That is required to have the callback
+work also during the initial import.
+
+The callback class is defined inside of `my_callbacks/orders_callback`:
+
+```ruby
+
+  require 'mosql'
+
+  class OrdersCallback < MoSQL::Callback
+    def after_upsert(obj)
+      customer_mongodb_id = obj['customer_id']
+      return unless customer_mongodb_id
+
+      customer_sql_id = @db[:repositories].where(
+        :_id => customer_mongodb_id.to_s
+      ).get(:id)
+      unless customer_sql_id
+        log.warn "Cannot find customer with _id #{customer_mongodb_id}"
+        return
+      end
+
+      @db[:orders].where(
+        :_id => obj['_id'].to_s
+      ).update(
+        :customer_id => customer_sql_id
+      )
+      log.debug "Fixed customer_id association for order with _id #{obj['_id']}"
+    rescue Exception => e
+      log.error(
+        "Something went wrong with fixing the customer_id association for order " +
+        "with _id #{obj['_id']}: #{e.to_s}"
+      )
+    end
+
+  end
+
+```
+
+As you can see the callback takes care of findining and setting the SQL id of the
+associated customer every time an order item is created or updated.
+
+
 ## Schema mismatches and _extra_props
 
 If MoSQL encounters values in the MongoDB database that don't fit
