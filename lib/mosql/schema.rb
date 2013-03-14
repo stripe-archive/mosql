@@ -190,8 +190,8 @@ module MoSQL
 
           require File.expand_path(callback)
           callback_class_name = File.basename(callback).camelize
-          if Kernel.const_defined?(callback_class_name)
-            callback_class = Kernel.const_get(callback_class_name)
+          if Object.const_defined?(callback_class_name)
+            callback_class = Object.const_get(callback_class_name)
           else
             log.warn "#{callback_class_name} class is not defined by #{callback}.rb"
             next
