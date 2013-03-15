@@ -168,5 +168,9 @@ module MoSQL
     def collections_for_mongo_db(db)
       (@map[db]||{}).keys
     end
+
+    def primary_sql_key_for_ns(ns)
+      find_ns!(ns)[:columns].find {|c| c[:source] == '_id'}[:name]
+    end
   end
 end
