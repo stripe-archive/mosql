@@ -37,6 +37,7 @@ EOF
     @adapter = MoSQL::SQLAdapter.new(@map, sql_test_uri)
 
     @sequel.drop_table?(:sqltable)
+    @sequel.drop_table?(:sqltable2)
     @map.create_schema(@sequel)
 
     @cli = fake_cli
@@ -96,6 +97,6 @@ EOF
                      'o2' => { '_id' => o['_id'] },
                      'o'  => { '$set' => { 'goats' => 0 } },
                    })
-    assert_equal(0, sequel[:sqltable2].where(:_id => o['_id'].to_s).select.first[:var])
+    assert_equal(0, sequel[:sqltable2].where(:id => o['_id'].to_s).select.first[:goats])
   end
 end
