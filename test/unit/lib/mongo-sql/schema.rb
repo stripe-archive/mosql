@@ -19,7 +19,12 @@ db:
     :columns:
       - id:
         :source: _id
-        :type: INTEGER
+        :type: TEXT
+  old_conf_syntax:
+    :columns:
+      - _id: TEXT
+    :meta:
+      :table: sqltable3
 EOF
 
   before do
@@ -55,10 +60,22 @@ EOF
     assert_equal 'INTEGER', var_mapping[:type]
   end
 
+  it 'Can handle the old configuration format' do
+    table = @map.find_ns('db.old_conf_syntax')
+    assert(table[:columns].is_a?(Array))
+
+    id_mapping = table[:columns].find{|c| c[:source] == '_id'}
+    assert id_mapping
+    assert_equal '_id', id_mapping[:source]
+    assert_equal '_id', id_mapping[:name]
+    assert_equal 'TEXT', id_mapping[:type]
+  end
+
   it 'can create a SQL schema' do
     db = stub()
     db.expects(:create_table?).with('sqltable')
     db.expects(:create_table?).with('sqltable2')
+    db.expects(:create_table?).with('sqltable3')
 
     @map.create_schema(db)
   end
@@ -69,19 +86,26 @@ EOF
     stub_1.expects(:column).with('id', 'TEXT')
     stub_1.expects(:column).with('var', 'INTEGER')
     stub_1.expects(:column).with('_extra_props').never
+    stub_1.expects(:primary_key).with([:id])
     stub_2 = stub()
-    stub_2.expects(:column).with('id', 'INTEGER')
+    stub_2.expects(:column).with('id', 'TEXT')
     stub_2.expects(:column).with('_extra_props', 'TEXT')
+    stub_2.expects(:primary_key).with([:id])
+    stub_3 = stub()
+    stub_3.expects(:column).with('_id', 'TEXT')
+    stub_3.expects(:column).with('_extra_props').never
+    stub_3.expects(:primary_key).with([:_id])
     (class << db; self; end).send(:define_method, :create_table?) do |tbl, &blk|
       case tbl
       when "sqltable"
         o = stub_1
       when "sqltable2"
         o = stub_2
+      when "sqltable3"
+        o = stub_3
       else
         assert(false, "Tried to create an unexpeced table: #{tbl}")
       end
-      o.expects(:primary_key).with([:id])
       o.instance_eval(&blk)
     end
     @map.create_schema(db)
