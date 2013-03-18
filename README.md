@@ -59,9 +59,7 @@ types. An example collection map might be:
         - author:
           :source: author
           :type: TEXT
-        - title:
-          :source: title
-          :type: TEXT
+        - title: TEXT
         - created: DOUBLE PRECISION
         :meta:
           :table: blog_posts
@@ -75,15 +73,23 @@ mapping
 Where a `<Collection Definition>` is a hash with `:columns` and
 `:meta` fields.
 
-`:columns` is a list of hashes mapping the field-name to an hash with the
-following keys:
-  * `:source`: the name of the attribute inside of MongoDB.
-  * `:type`: the SQL type.
-This syntax allows to rename MongoDB's attributes during the import. For example
-the `_id` attributes are going to be written inside of the `id` column.
-It's possible to use a one-element hash mapping the field-name to SQL type when
-the rename operation is not required. That's the case of the `created` attribute.
-It is required to include at least an `_id` mapping.
+`:columns` is a list of hashes mapping SQL column names to an hash
+describing that column. This hash may contain the following fields:
+
+  * `:source`: The name of the attribute inside of MongoDB.
+  * `:type`: (Mandatory) The SQL type.
+
+This syntax allows to rename MongoDB's attributes during the
+import. For example the MonogDB `_id` attribute will be transferred to
+a SQL column named `id`.
+
+As a shorthand, you can specify a one-elment hash of the form `name:
+TYPE`, in which case `name` will be used for both the source attribute
+and the name of the destination column. You can see this shorthand for
+the `title` and `created` attributes, above.
+
+Every defined collection must include a mapping for the `_id`
+attribute.
 
 `:meta` contains metadata about this collection/table. It is
 required to include at least `:table`, naming the SQL table this
