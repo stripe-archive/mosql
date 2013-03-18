@@ -15,7 +15,7 @@ db:
       :table: sqltable2
       :extra_props: true
     :columns:
-      - _id: INTEGER
+      - _id: TEXT
 EOF
 
   before do
