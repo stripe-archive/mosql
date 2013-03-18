@@ -35,35 +35,36 @@ module MoSQL
 
     def upsert_ns(ns, obj)
       h = transform_one_ns(ns, obj)
-      upsert(table_for_ns(ns), h)
+      upsert(table_for_ns(ns), @schema.primary_sql_key_for_ns(ns), h)
     end
 
     # obj must contain an _id field. All other fields will be ignored.
     def delete_ns(ns, obj)
+      primary_sql_key = @schema.primary_sql_key_for_ns(ns)
       h = transform_one_ns(ns, obj)
-      raise "No _id found in transform of #{obj.inspect}" if h['_id'].nil?
-      table_for_ns(ns).where(:_id => h['_id']).delete
+      raise "No #{primary_sql_key} found in transform of #{obj.inspect}" if h[primary_sql_key].nil?
+      table_for_ns(ns).where(primary_sql_key.to_sym => h[primary_sql_key]).delete
     end
 
-    def upsert(table, item)
+    def upsert(table, table_primary_key, item)
       begin
-        upsert!(table, item)
+        upsert!(table, table_primary_key, item)
       rescue Sequel::DatabaseError => e
         wrapped = e.wrapped_exception
         if wrapped.result
-          log.warn("Ignoring row (_id=#{item['_id']}): #{e}")
+          log.warn("Ignoring row (#{table_primary_key}=#{item[table_primary_key]}): #{e}")
         else
           raise e
         end
       end
     end
 
-    def upsert!(table, item)
+    def upsert!(table, table_primary_key, item)
       begin
         table.insert(item)
       rescue Sequel::DatabaseError => e
         raise e unless e.message =~ /duplicate key value violates unique constraint/
-        table.where(:_id => item['_id']).update(item)
+        table.where(table_primary_key.to_sym => item[table_primary_key]).update(item)
       end
     end
   end
