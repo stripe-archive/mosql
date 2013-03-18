@@ -4,19 +4,33 @@ module MoSQL
   class Schema
     include MoSQL::Logging
 
-    def to_ordered_hash(lst)
-      hash = BSON::OrderedHash.new
+    def to_array(lst)
+      array = []
       lst.each do |ent|
-        raise "Invalid ordered hash entry #{ent.inspect}" unless ent.is_a?(Hash) && ent.keys.length == 1
-        field, type = ent.first
-        hash[field] = type
+        if ent.is_a?(Hash) && ent[:source].is_a?(String) && ent[:type].is_a?(String)
+          # new configuration format
+          array << {
+            :source => ent.delete(:source),
+            :type   => ent.delete(:type),
+            :name   => ent.first.first,
+          }
+        elsif ent.is_a?(Hash) && ent.keys.length == 1
+          array << {
+            :source => ent.first.first,
+            :name   => ent.first.first,
+            :type   => ent.first.last
+          }
+        else
+          raise "Invalid ordered hash entry #{ent.inspect}"
+        end
+
       end
-      hash
+      array
     end
 
     def parse_spec(spec)
       out = spec.dup
-      out[:columns] = to_ordered_hash(spec[:columns])
+      out[:columns] = to_array(spec[:columns])
       out
     end
 
@@ -35,13 +49,16 @@ module MoSQL
         meta = collection[:meta]
         log.info("Creating table '#{meta[:table]}'...")
         db.send(clobber ? :create_table! : :create_table?, meta[:table]) do
-          collection[:columns].each do |field, type|
-            column field, type
+          collection[:columns].each do |col|
+            column col[:name], col[:type]
+
+            if col[:source].to_sym == :_id
+              primary_key [col[:name].to_sym]
+            end
           end
           if meta[:extra_props]
             column '_extra_props', 'TEXT'
           end
-          primary_key [:_id]
         end
       end
     end
@@ -67,8 +84,12 @@ module MoSQL
 
       obj = obj.dup
       row = []
-      schema[:columns].each do |name, type|
-        v = obj.delete(name)
+      schema[:columns].each do |col|
+
+        source = col[:source]
+        type = col[:type]
+
+        v = obj.delete(source)
         case v
         when BSON::Binary, BSON::ObjectId
           v = v.to_s
@@ -91,7 +112,10 @@ module MoSQL
     end
 
     def all_columns(schema)
-      cols = schema[:columns].keys
+      cols = []
+      schema[:columns].each do |col|
+        cols << col[:name]
+      end
       if schema[:meta][:extra_props]
         cols << "_extra_props"
       end
@@ -143,6 +167,10 @@ module MoSQL
 
     def collections_for_mongo_db(db)
       (@map[db]||{}).keys
+    end
+
+    def primary_sql_key_for_ns(ns)
+      find_ns!(ns)[:columns].find {|c| c[:source] == '_id'}[:name]
     end
   end
 end

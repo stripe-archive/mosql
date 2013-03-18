@@ -164,7 +164,7 @@ module MoSQL
         items.each do |it|
           h = {}
           cols.zip(it).each { |k,v| h[k] = v }
-          @sql.upsert(table, h)
+          @sql.upsert(table, primary_sql_key_for_ns(ns), h)
         end
       end
     end
@@ -258,12 +258,13 @@ module MoSQL
     end
 
     def sync_object(ns, _id)
-      sqlid = @sql.transform_one_ns(ns, { '_id' => _id })['_id']
-      obj = collection_for_ns(ns).find_one({:_id => _id})
+      primary_sql_key = @schemamap.primary_sql_key_for_ns(ns)
+      sqlid           = @sql.transform_one_ns(ns, { '_id' => _id })[primary_sql_key]
+      obj             = collection_for_ns(ns).find_one({:_id => _id})
       if obj
         @sql.upsert_ns(ns, obj)
       else
-        @sql.table_for_ns(ns).where(:_id => sqlid).delete()
+        @sql.table_for_ns(ns).where(primary_sql_key.to_sym => sqlid).delete()
       end
     end
 
