@@ -110,4 +110,44 @@ EOF
                    })
     assert_equal(0, sequel[:sqltable2].where(:id => o['_id'].to_s).count)
   end
+
+  describe '.bulk_upsert' do
+    it 'inserts multiple rows' do
+      objs = [
+              { '_id' => BSON::ObjectId.new, 'var' => 0 },
+              { '_id' => BSON::ObjectId.new, 'var' => 1 },
+              { '_id' => BSON::ObjectId.new, 'var' => 3 },
+             ].map { |o| @map.transform('mosql_test.collection', o) }
+
+      @cli.bulk_upsert(sequel[:sqltable], 'mosql_test.collection',
+                       objs)
+
+      assert(sequel[:sqltable].where(:_id => objs[0].first, :var => 0).count)
+      assert(sequel[:sqltable].where(:_id => objs[1].first, :var => 1).count)
+      assert(sequel[:sqltable].where(:_id => objs[2].first, :var => 3).count)
+    end
+
+    it 'upserts' do
+      _id = BSON::ObjectId.new
+      objs = [
+              { '_id' => _id, 'var' => 0 },
+              { '_id' => BSON::ObjectId.new, 'var' => 1 },
+              { '_id' => BSON::ObjectId.new, 'var' => 3 },
+             ].map { |o| @map.transform('mosql_test.collection', o) }
+
+      @cli.bulk_upsert(sequel[:sqltable], 'mosql_test.collection',
+                       objs)
+
+      newobjs = [
+                 { '_id' => _id, 'var' => 117 },
+                 { '_id' => BSON::ObjectId.new, 'var' => 32 },
+                ].map { |o| @map.transform('mosql_test.collection', o) }
+      @cli.bulk_upsert(sequel[:sqltable], 'mosql_test.collection',
+                       newobjs)
+
+
+      assert(sequel[:sqltable].where(:_id => newobjs[0].first, :var => 117).count)
+      assert(sequel[:sqltable].where(:_id => newobjs[1].first, :var => 32).count)
+    end
+  end
 end

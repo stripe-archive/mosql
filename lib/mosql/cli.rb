@@ -164,7 +164,7 @@ module MoSQL
         items.each do |it|
           h = {}
           cols.zip(it).each { |k,v| h[k] = v }
-          @sql.upsert(table, primary_sql_key_for_ns(ns), h)
+          @sql.upsert(table, @schemamap.primary_sql_key_for_ns(ns), h)
         end
       end
     end
