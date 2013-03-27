@@ -7,6 +7,10 @@ module MoSQL
       @db = db
     end
 
+    def before_upsert(obj)
+      obj
+    end
+
     def after_upsert(obj)
     end
 

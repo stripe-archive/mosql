@@ -237,6 +237,7 @@ module MoSQL
       collection.find(nil, :batch_size => BATCH) do |cursor|
         with_retries do
           cursor.each do |obj|
+            obj = callback.before_upsert(obj) if callback
             batch_rows << @schemamap.transform(ns, obj)
             batch_objs << obj if callback
             count += 1
@@ -289,6 +290,7 @@ module MoSQL
       obj             = collection_for_ns(ns).find_one({:_id => _id})
       callback        = @schemamap.callback_for_ns(ns)
       if obj
+        obj = callback.before_upsert(obj) if callback
         @sql.upsert_ns(ns, obj)
         callback.after_upsert(obj) if callback
       else
@@ -319,6 +321,7 @@ module MoSQL
         if collection_name == 'system.indexes'
           log.info("Skipping index update: #{op.inspect}")
         else
+          op['o'] = callback.before_upsert(op['o']) if callback
           @sql.upsert_ns(ns, op['o'])
 
           callback = @schemamap.callback_for_ns(ns)
@@ -331,6 +334,7 @@ module MoSQL
           log.debug("resync #{ns}: #{selector['_id']} (update was: #{update.inspect})")
           sync_object(ns, selector['_id'])
         else
+          callback = @schemamap.callback_for_ns(ns)
           log.debug("upsert #{ns}: _id=#{selector['_id']}")
 
           # The update operation replaces the existing object, but
@@ -338,9 +342,9 @@ module MoSQL
           # 'query' field -- it's not guaranteed to be present on the
           # update.
           update = { '_id' => selector['_id'] }.merge(update)
+          update = callback.before_upsert(update) if callback
           @sql.upsert_ns(ns, update)
 
-          callback = @schemamap.callback_for_ns(ns)
           callback.after_upsert(update) if callback
         end
       when 'd'

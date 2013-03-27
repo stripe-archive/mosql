@@ -49,6 +49,9 @@ EOF
 
   it 'handle "u" ops without _id' do
     o = { '_id' => BSON::ObjectId.new, 'var' => 17 }
+    @callback.expects(:before_upsert)
+      .with('_id' => o['_id'], 'var' => 27)
+      .returns('_id' => o['_id'], 'var' => 27)
     @callback.expects(:after_upsert).with('_id' => o['_id'], 'var' => 27)
     @adapter.upsert_ns('mosql_test.collection', o)
     @cli.handle_op({ 'ns' => 'mosql_test.collection',
@@ -80,6 +83,9 @@ EOF
     connect_mongo['mosql_test']['collection'].insert(o.merge('var' => 100),
                                                      :w => 1)
 
+    @callback.expects(:before_upsert)
+      .with('_id' => o['_id'], 'var' => 100)
+      .returns('_id' => o['_id'], 'var' => 100)
     @callback.expects(:after_upsert).with('_id' => o['_id'],
                                           'var' => 100)
 
