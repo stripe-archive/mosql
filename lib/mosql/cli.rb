@@ -321,10 +321,11 @@ module MoSQL
         if collection_name == 'system.indexes'
           log.info("Skipping index update: #{op.inspect}")
         else
+          callback = @schemamap.callback_for_ns(ns)
+
           op['o'] = callback.before_upsert(op['o']) if callback
           @sql.upsert_ns(ns, op['o'])
 
-          callback = @schemamap.callback_for_ns(ns)
           callback.after_upsert(op['o']) if callback
         end
       when 'u'
