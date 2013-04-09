@@ -109,7 +109,7 @@ EOF
       when "sqltable3"
         o = stub_3
       else
-        assert(false, "Tried to create an unexpeced table: #{tbl}")
+        assert(false, "Tried to create an unexpected table: #{tbl}")
       end
       o.instance_eval(&blk)
     end
@@ -141,6 +141,58 @@ EOF
       assert_equal(%Q{\\\t}, @map.quote_copy( %Q{\t}))
       assert_equal(%Q{\\\n}, @map.quote_copy( %Q{\n}))
       assert_equal(%Q{some text}, @map.quote_copy(%Q{some text}))
+    end
+  end
+
+  describe 'fetch_and_delete_dotted' do
+    def check(orig, path, expect, result)
+      assert_equal(expect, @map.fetch_and_delete_dotted(orig, path))
+      assert_equal(result, orig)
+    end
+
+    it 'works on things without dots' do
+      check({'a' => 1, 'b' => 2},
+            'a', 1,
+            {'b' => 2})
+    end
+
+    it 'works if the key does not exist' do
+      check({'a' => 1, 'b' => 2},
+            'c', nil,
+            {'a' => 1, 'b' => 2})
+    end
+
+    it 'fetches nested hashes' do
+      check({'a' => 1, 'b' => { 'c' => 1, 'd' => 2 }},
+            'b.d', 2,
+            {'a' => 1, 'b' => { 'c' => 1 }})
+    end
+
+    it 'fetches deeply nested hashes' do
+      check({'a' => 1, 'b' => { 'c' => { 'e' => 8, 'f' => 9 }, 'd' => 2 }},
+            'b.c.e', 8,
+            {'a' => 1, 'b' => { 'c' => { 'f' => 9 }, 'd' => 2 }})
+    end
+
+    it 'cleans up empty hashes' do
+      check({'a' => { 'b' => 4}},
+            'a.b', 4,
+            {})
+      check({'a' => { 'b' => { 'c' => 5 }, 'd' => 9}},
+            'a.b.c', 5,
+            {'a' => { 'd' => 9 }})
+    end
+
+    it 'recursively cleans' do
+      check({'a' => { 'b' => { 'c' => { 'd' => 99 }}}},
+            'a.b.c.d', 99,
+            {})
+    end
+
+    it 'handles missing path components' do
+      check({'a' => { 'c' => 4 }},
+            'a.b.c.d', nil,
+            {'a' => { 'c' => 4 }})
     end
   end
 end

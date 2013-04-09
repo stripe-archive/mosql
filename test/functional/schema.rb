@@ -16,6 +16,18 @@ db:
       :extra_props: true
     :columns:
       - _id: TEXT
+  with_dotted:
+    :meta:
+      :table: sqltable3
+      :extra_props: true
+    :columns:
+      - _id: TEXT
+      - var_a:
+        :source: vars.a
+        :type: TEXT
+      - var_b:
+        :source: vars.b
+        :type: TEXT
 EOF
 
   before do
@@ -23,11 +35,13 @@ EOF
 
     @sequel.drop_table?(:sqltable)
     @sequel.drop_table?(:sqltable2)
+    @sequel.drop_table?(:sqltable3)
     @map.create_schema(@sequel)
   end
 
   def table; @sequel[:sqltable]; end
   def table2; @sequel[:sqltable2]; end
+  def table3; @sequel[:sqltable3]; end
 
   it 'Creates the tables with the right columns' do
     assert_equal(Set.new([:_id, :var]),
@@ -49,6 +63,30 @@ EOF
     assert_equal(%w[a b c d], rows.map { |r| r[:_id] })
     assert_equal(nil, rows[2][:var])
     assert_equal(nil, rows[3][:var])
+  end
+
+  it 'Can COPY dotted data' do
+    objects = [
+               {'_id' => "a", 'vars' => {'a' => 1, 'b' => 2}},
+               {'_id' => "b", 'vars' => {}},
+               {'_id' => "c", 'vars' => {'a' => 2, 'c' => 6}},
+               {'_id' => "d", 'vars' => {'a' => 1, 'c' => 7}, 'extra' => 'moo'}
+              ]
+    @map.copy_data(@sequel, 'db.with_dotted', objects.map { |o| @map.transform('db.with_dotted', o) } )
+    assert_equal(4, table3.count)
+    o = table3.first(:_id => 'a')
+    assert_equal("1", o[:var_a])
+    assert_equal("2", o[:var_b])
+
+    o = table3.first(:_id => 'b')
+    assert_equal({}, JSON.parse(o[:_extra_props]))
+
+    o = table3.first(:_id => 'c')
+    assert_equal({'vars' => { 'c' => 6} }, JSON.parse(o[:_extra_props]))
+
+    o = table3.first(:_id => 'd')
+    assert_equal({'vars' => { 'c' => 7}, 'extra' => 'moo' }, JSON.parse(o[:_extra_props]))
+    assert_equal(nil, o[:var_b])
   end
 
   it 'Can COPY BSON::ObjectIDs' do

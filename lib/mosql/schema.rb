@@ -28,9 +28,20 @@ module MoSQL
       array
     end
 
-    def parse_spec(spec)
+    def check_columns!(ns, spec)
+      seen = Set.new
+      spec[:columns].each do |col|
+        if seen.include?(col[:source])
+          raise "Duplicate source #{col[:source]} in column definition #{col[:name]} for #{ns}."
+        end
+        seen.add(col[:source])
+      end
+    end
+
+    def parse_spec(ns, spec)
       out = spec.dup
       out[:columns] = to_array(spec[:columns])
+      check_columns!(ns, out)
       out
     end
 
@@ -39,7 +50,7 @@ module MoSQL
       map.each do |dbname, db|
         @map[dbname] ||= {}
         db.each do |cname, spec|
-          @map[dbname][cname] = parse_spec(spec)
+          @map[dbname][cname] = parse_spec("#{dbname}.#{cname}", spec)
         end
       end
     end
@@ -79,6 +90,25 @@ module MoSQL
       schema
     end
 
+    def fetch_and_delete_dotted(obj, dotted)
+      pieces = dotted.split(".")
+      breadcrumbs = []
+      while pieces.length > 1
+        key = pieces.shift
+        breadcrumbs << [obj, key]
+        obj = obj[key]
+        return nil unless obj.is_a?(Hash)
+      end
+
+      val = obj.delete(pieces.first)
+
+      breadcrumbs.reverse.each do |obj, key|
+        obj.delete(key) if obj[key].empty?
+      end
+
+      val
+    end
+
     def transform(ns, obj, schema=nil)
       schema ||= find_ns!(ns)
 
@@ -89,7 +119,7 @@ module MoSQL
         source = col[:source]
         type = col[:type]
 
-        v = obj.delete(source)
+        v = fetch_and_delete_dotted(obj, source)
         case v
         when BSON::Binary, BSON::ObjectId
           v = v.to_s
