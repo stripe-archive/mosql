@@ -14,7 +14,7 @@ module MoSQL
             :type   => ent.delete(:type),
             :name   => ent.first.first,
           }
-        elsif ent.is_a?(Hash) && ent.keys.length == 1
+        elsif ent.is_a?(Hash) && ent.keys.length == 1 && ent.values.first.is_a?(String)
           array << {
             :source => ent.first.first,
             :name   => ent.first.first,
