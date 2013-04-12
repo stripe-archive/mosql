@@ -56,8 +56,11 @@ types. An example collection map might be:
         - id:
           :source: _id
           :type: TEXT
-        - author:
-          :source: author
+        - author_name:
+          :source: author.name
+          :type: TEXT
+        - author_bio:
+          :source: author.bio
           :type: TEXT
         - title: TEXT
         - created: DOUBLE PRECISION
@@ -79,9 +82,15 @@ describing that column. This hash may contain the following fields:
   * `:source`: The name of the attribute inside of MongoDB.
   * `:type`: (Mandatory) The SQL type.
 
-This syntax allows to rename MongoDB's attributes during the
-import. For example the MonogDB `_id` attribute will be transferred to
-a SQL column named `id`.
+
+Use of the `:source` attribute allows for renaming attributes, and
+extracting elements of a nested hash using MongoDB's
+[dot notation][dot-notation]. In the above example, the `name` and
+`bio` fields of the `author` sub-document will be expanded, and the
+MongoDB `_id` field will be mapped to an SQL `id` column.
+
+At present, MoSQL does not support using the dot notation to access
+elements inside arrays.
 
 As a shorthand, you can specify a one-elment hash of the form `name:
 TYPE`, in which case `name` will be used for both the source attribute
@@ -99,6 +108,8 @@ unknown fields in MongoDB objects -- more about that later.
 By default, `mosql` looks for a collection map in a file named
 `collections.yml` in your current working directory, but you can
 specify a different one with `-c` or `--collections`.
+
+[dot-notation]: http://docs.mongodb.org/manual/core/document/#dot-notation
 
 ## Usage
 
