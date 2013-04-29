@@ -60,11 +60,16 @@ module MoSQL
     end
 
     def upsert!(table, table_primary_key, item)
-      begin
-        table.insert(item)
-      rescue Sequel::DatabaseError => e
-        raise e unless e.message =~ /duplicate key value violates unique constraint/
-        table.where(table_primary_key.to_sym => item[table_primary_key]).update(item)
+      rows = table.where(table_primary_key.to_sym => item[table_primary_key]).update(item)
+      if rows == 0
+        begin
+          table.insert(item)
+        rescue Sequel::DatabaseError => e
+          raise e unless e.message =~ /duplicate key value violates unique constraint/
+          log.info("RACE during upsert: Upserting #{item} into #{table}: #{e}")
+        end
+      elsif rows > 1
+        log.warn("Huh? Updated #{rows} > 1 rows: upsert(#{table}, #{item})")
       end
     end
   end
