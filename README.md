@@ -185,6 +185,24 @@ written that code yet.
 
 [plv8]: http://code.google.com/p/plv8js/
 
+## Authentication
+
+At present, in order to use MoSQL with a MongoDB instance requiring
+authentication, you must:
+
+- Have a user with access to the admin database.
+- Specify the `admin` database in the `--mongo` argument
+- Specify the username and password in the `--mongo` argument
+
+e.g.
+
+```
+mosql --mongo mongdb://$USER@$PASSWORD:$HOST/admin
+```
+
+I have not yet tested using MoSQL with 2.4's "roles" support. Drop me
+a note if you figure out anything I should know.
+
 ## Sharded clusters
 
 MoSQL does not have special support for sharded Mongo clusters at this
