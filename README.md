@@ -92,7 +92,7 @@ MongoDB `_id` field will be mapped to an SQL `id` column.
 At present, MoSQL does not support using the dot notation to access
 elements inside arrays.
 
-As a shorthand, you can specify a one-elment hash of the form `name:
+As a shorthand, you can specify a one-element hash of the form `name:
 TYPE`, in which case `name` will be used for both the source attribute
 and the name of the destination column. You can see this shorthand for
 the `title` and `created` attributes, above.
@@ -127,7 +127,7 @@ command-line parameters.
 
  1. Create the appropriate SQL tables
  2. Import data from the Mongo database
- 3. Start tailing the mongo oplog, propogating changes from MongoDB to SQL.
+ 3. Start tailing the mongo oplog, propagating changes from MongoDB to SQL.
 
 
 After the first run, `mosql` will store the status of the optailer in
