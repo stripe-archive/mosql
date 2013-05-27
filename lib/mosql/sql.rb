@@ -4,21 +4,22 @@ module MoSQL
 
     attr_reader :db
 
-    def initialize(schema, uri, pgschema=nil)
+    def initialize(schema, uri, pgschema=nil, opts={})
       @schema = schema
-      connect_db(uri, pgschema)
+      connect_db(uri, pgschema, opts)
     end
 
-    def connect_db(uri, pgschema)
-      @db = Sequel.connect(uri, :after_connect => proc do |conn|
-                             if pgschema
-                               begin
-                                 conn.execute("CREATE SCHEMA \"#{pgschema}\"")
-                               rescue PG::Error
-                               end
-                               conn.execute("SET search_path TO \"#{pgschema}\"")
-                             end
-                           end)
+    def connect_db(uri, pgschema, opts={})
+      opts[:after_connect] = proc do |conn|
+        if pgschema
+          begin
+            conn.execute("CREATE SCHEMA \"#{pgschema}\"")
+          rescue PG::Error
+          end
+          conn.execute("SET search_path TO \"#{pgschema}\"")
+        end
+      end
+      @db = Sequel.connect(uri, opts)
     end
 
     def table_for_ns(ns)

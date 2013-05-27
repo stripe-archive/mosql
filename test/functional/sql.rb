@@ -35,4 +35,12 @@ class MoSQL::Test::Functional::SQLTest < MoSQL::Test::Functional
       assert_equal('blue', @table[:_id => 0][:color])
     end
   end
+
+  describe 'database options' do
+    it 'can be passed through SQLAdapter' do
+      assert_equal(@adapter.db.pool.max_size, 4)
+      new_adapter = MoSQL::SQLAdapter.new(nil, sql_test_uri, :max_connections => 8)
+      assert_equal(new_adapter.db.pool.max_size, 8)
+    end
+  end
 end
