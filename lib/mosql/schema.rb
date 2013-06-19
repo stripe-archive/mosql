@@ -12,7 +12,7 @@ module MoSQL
           array << {
             :source => ent.fetch(:source),
             :type   => ent.fetch(:type),
-            :name   => ent.first.first,
+            :name   => (ent.keys - [:source, :type]).first,
           }
         elsif ent.is_a?(Hash) && ent.keys.length == 1 && ent.values.first.is_a?(String)
           array << {
