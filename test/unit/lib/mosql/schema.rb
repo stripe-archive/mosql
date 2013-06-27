@@ -12,6 +12,7 @@ db:
         :source: _id
         :type: TEXT
       - var: INTEGER
+      - str: TEXT
   with_extra_props:
     :meta:
       :table: sqltable2
@@ -90,6 +91,7 @@ EOF
     stub_1 = stub()
     stub_1.expects(:column).with('id', 'TEXT')
     stub_1.expects(:column).with('var', 'INTEGER')
+    stub_1.expects(:column).with('str', 'TEXT')
     stub_1.expects(:column).with('_extra_props').never
     stub_1.expects(:primary_key).with([:id])
     stub_2 = stub()
@@ -118,8 +120,8 @@ EOF
 
   describe 'when transforming' do
     it 'transforms rows' do
-      out = @map.transform('db.collection', {'_id' => "row 1", 'var' => 6})
-      assert_equal(["row 1", 6], out)
+      out = @map.transform('db.collection', {'_id' => "row 1", 'var' => 6, 'str' => 'a string'})
+      assert_equal(["row 1", 6, 'a string'], out)
     end
 
     it 'Includes extra props' do
@@ -130,8 +132,13 @@ EOF
     end
 
     it 'gets all_columns right' do
-      assert_equal(['id', 'var'], @map.all_columns(@map.find_ns('db.collection')))
+      assert_equal(['id', 'var', 'str'], @map.all_columns(@map.find_ns('db.collection')))
       assert_equal(['id', '_extra_props'], @map.all_columns(@map.find_ns('db.with_extra_props')))
+    end
+
+    it 'stringifies symbols' do
+      out = @map.transform('db.collection', {'_id' => "row 1", 'str' => :stringy})
+      assert_equal(["row 1", nil, 'stringy'], out)
     end
   end
 

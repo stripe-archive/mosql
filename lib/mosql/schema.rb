@@ -121,8 +121,10 @@ module MoSQL
 
         v = fetch_and_delete_dotted(obj, source)
         case v
-        when BSON::Binary, BSON::ObjectId
+        when BSON::Binary, BSON::ObjectId, Symbol
           v = v.to_s
+        when Hash, Array
+          v = JSON.dump(v)
         end
         row << v
       end
