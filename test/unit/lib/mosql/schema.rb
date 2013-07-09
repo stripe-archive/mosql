@@ -142,7 +142,7 @@ EOF
     end
 
     it 'changes NaN to null in extra_props' do
-      out = @map.transform('db.with_extra_props', {'_id' => 7, 'nancy' => Float::NAN})
+      out = @map.transform('db.with_extra_props', {'_id' => 7, 'nancy' => 0.0/0.0})
       extra = JSON.parse(out[1])
       assert(extra.key?('nancy'))
       assert_equal(nil, extra['nancy'])
