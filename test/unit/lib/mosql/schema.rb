@@ -140,6 +140,13 @@ EOF
       out = @map.transform('db.collection', {'_id' => "row 1", 'str' => :stringy})
       assert_equal(["row 1", nil, 'stringy'], out)
     end
+
+    it 'changes NaN to null in extra_props' do
+      out = @map.transform('db.with_extra_props', {'_id' => 7, 'nancy' => Float::NAN})
+      extra = JSON.parse(out[1])
+      assert(extra.key?('nancy'))
+      assert_equal(nil, extra['nancy'])
+    end
   end
 
   describe 'when copying data' do

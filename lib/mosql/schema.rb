@@ -132,10 +132,18 @@ module MoSQL
       if schema[:meta][:extra_props]
         # Kludgily delete binary blobs from _extra_props -- they may
         # contain invalid UTF-8, which to_json will not properly encode.
+        extra = {}
         obj.each do |k,v|
-          obj.delete(k) if v.is_a?(BSON::Binary)
+          case v
+          when BSON::Binary
+            next
+          when Float
+            # NaN is illegal in JSON. Translate into null.
+            v = nil if v.nan?
+          end
+          extra[k] = v
         end
-        row << obj.to_json
+        row << JSON.dump(extra)
       end
 
       log.debug { "Transformed: #{row.inspect}" }
