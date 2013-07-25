@@ -21,7 +21,7 @@ module MoSQL
             :type   => ent.first.last
           }
         else
-          raise "Invalid ordered hash entry #{ent.inspect}"
+          raise SchemaError.new("Invalid ordered hash entry #{ent.inspect}")
         end
 
       end
@@ -32,7 +32,7 @@ module MoSQL
       seen = Set.new
       spec[:columns].each do |col|
         if seen.include?(col[:source])
-          raise "Duplicate source #{col[:source]} in column definition #{col[:name]} for #{ns}."
+          raise SchemaError.new("Duplicate source #{col[:source]} in column definition #{col[:name]} for #{ns}.")
         end
         seen.add(col[:source])
       end
@@ -40,7 +40,7 @@ module MoSQL
 
     def parse_spec(ns, spec)
       out = spec.dup
-      out[:columns] = to_array(spec[:columns])
+      out[:columns] = to_array(spec.fetch(:columns))
       check_columns!(ns, out)
       out
     end
@@ -50,7 +50,11 @@ module MoSQL
       map.each do |dbname, db|
         @map[dbname] ||= {}
         db.each do |cname, spec|
-          @map[dbname][cname] = parse_spec("#{dbname}.#{cname}", spec)
+          begin
+            @map[dbname][cname] = parse_spec("#{dbname}.#{cname}", spec)
+          rescue KeyError => e
+            raise SchemaError.new("In spec for #{dbname}.#{cname}: #{e}")
+          end
         end
       end
     end

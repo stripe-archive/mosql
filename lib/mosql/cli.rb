@@ -125,7 +125,13 @@ module MoSQL
 
     def load_collections
       collections = YAML.load_file(@options[:collections])
-      @schema = MoSQL::Schema.new(collections)
+      begin
+        @schema = MoSQL::Schema.new(collections)
+      rescue MoSQL::SchemaError => e
+        log.error("Error parsing collection map `#{@options[:collections]}':")
+        log.error(e.to_s)
+        exit(1)
+      end
     end
 
     def run
