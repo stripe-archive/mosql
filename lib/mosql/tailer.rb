@@ -25,12 +25,15 @@ module MoSQL
     end
 
     def write_timestamp(ts)
-      begin
-        @table.insert({:service => @service, :timestamp => ts.seconds})
-      rescue Sequel::DatabaseError => e
-        raise unless e.message =~ /duplicate key value violates unique constraint/
-        @table.where(:service => @service).update(:timestamp => ts.seconds)
+      unless @did_insert
+        begin
+          @table.insert({:service => @service, :timestamp => ts.seconds})
+        rescue Sequel::DatabaseError => e
+          raise unless e.message =~ /duplicate key value violates unique constraint/
+        end
+        @did_insert = true
       end
+      @table.where(:service => @service).update(:timestamp => ts.seconds)
     end
   end
 end
