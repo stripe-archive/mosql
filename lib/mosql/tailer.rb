@@ -29,7 +29,7 @@ module MoSQL
         begin
           @table.insert({:service => @service, :timestamp => ts.seconds})
         rescue Sequel::DatabaseError => e
-          raise unless e.message =~ /duplicate key value violates unique constraint/
+          raise unless MoSQL::SQLAdapter.duplicate_key_error?(e)
         end
         @did_insert = true
       end
