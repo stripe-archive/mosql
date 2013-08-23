@@ -89,17 +89,17 @@ EOF
   it 'creates a SQL schema with the right fields' do
     db = {}
     stub_1 = stub()
-    stub_1.expects(:column).with('id', 'TEXT')
-    stub_1.expects(:column).with('var', 'INTEGER')
-    stub_1.expects(:column).with('str', 'TEXT')
+    stub_1.expects(:column).with('id', 'TEXT', {})
+    stub_1.expects(:column).with('var', 'INTEGER', {})
+    stub_1.expects(:column).with('str', 'TEXT', {})
     stub_1.expects(:column).with('_extra_props').never
     stub_1.expects(:primary_key).with([:id])
     stub_2 = stub()
-    stub_2.expects(:column).with('id', 'TEXT')
+    stub_2.expects(:column).with('id', 'TEXT', {})
     stub_2.expects(:column).with('_extra_props', 'TEXT')
     stub_2.expects(:primary_key).with([:id])
     stub_3 = stub()
-    stub_3.expects(:column).with('_id', 'TEXT')
+    stub_3.expects(:column).with('_id', 'TEXT', {})
     stub_3.expects(:column).with('_extra_props').never
     stub_3.expects(:primary_key).with([:_id])
     (class << db; self; end).send(:define_method, :create_table?) do |tbl, &blk|
@@ -207,6 +207,44 @@ EOF
       check({'a' => { 'c' => 4 }},
             'a.b.c.d', nil,
             {'a' => { 'c' => 4 }})
+    end
+  end
+
+  describe 'parsing magic source values' do
+  OTHER_MAP = <<EOF
+---
+db:
+  collection:
+    :meta:
+      :table: a_table
+    :columns:
+      - _id: TEXT
+      - mosql_created:
+        :source: $timestamp
+        :type: timestamp
+  invalid:
+    :meta:
+      :table: invalid
+    :columns:
+      - _id: TEXT
+      - magic:
+        :source: $magic
+        :type: timestamp
+EOF
+
+    before do
+      @othermap = MoSQL::Schema.new(YAML.load(OTHER_MAP))
+    end
+
+    it 'translates $timestamp' do
+      r = @othermap.transform('db.collection', { '_id' => 'a' })
+      assert_equal(['a', Sequel.function(:now)], r)
+    end
+
+    it 'rejects unknown specials' do
+      assert_raises(MoSQL::SchemaError) do
+        r = @othermap.transform('db.invalid', { '_id' => 'a' })
+      end
     end
   end
 end
