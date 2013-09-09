@@ -56,8 +56,7 @@ module MoSQL
     def initialize(map)
       @map = {}
       map.each do |dbname, db|
-        next unless dbname.is_a?(String)
-        @map[dbname] = {:meta => parse_meta(db[:meta]) }
+        @map[dbname] = { :meta => parse_meta(db[:meta]) }
         db.each do |cname, spec|
           next unless cname.is_a?(String)
           begin
@@ -94,7 +93,7 @@ module MoSQL
     def find_db(db)
       unless @map.key?(db)
         @map[db] = @map.values.find do |spec|
-          spec[:meta][:alias].any? { |a| a.match(db) }
+          spec && spec[:meta][:alias].any? { |a| a.match(db) }
         end
       end
       @map[db]

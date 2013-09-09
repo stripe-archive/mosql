@@ -232,5 +232,15 @@ EOF
       assert_equal(ns, @map.find_ns("db_00.collection"))
       assert_equal(ns, @map.find_ns("db_01.collection"))
     end
+
+    it 'caches negative lookups' do
+      assert_equal(nil, @map.find_ns("nosuchdb.foo"))
+      assert(@map.instance_variable_get(:@map).key?("nosuchdb"))
+    end
+
+    it 'can do lookups after a negative cache' do
+      @map.find_ns("nosuchdb.foo")
+      assert_nil(@map.find_ns("otherdb.collection"))
+    end
   end
 end
