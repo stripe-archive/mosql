@@ -45,11 +45,21 @@ module MoSQL
       out
     end
 
+    def parse_meta(meta)
+      meta = {} if meta.nil?
+      meta[:alias] = [] unless meta.key?(:alias)
+      meta[:alias] = [meta[:alias]] unless meta[:alias].is_a?(Array)
+      meta[:alias] = meta[:alias].map { |r| Regexp.new(r) }
+      meta
+    end
+
     def initialize(map)
       @map = {}
       map.each do |dbname, db|
-        @map[dbname] ||= {}
+        next unless dbname.is_a?(String)
+        @map[dbname] = {:meta => parse_meta(db[:meta]) }
         db.each do |cname, spec|
+          next unless cname.is_a?(String)
           begin
             @map[dbname][cname] = parse_spec("#{dbname}.#{cname}", spec)
           rescue KeyError => e
@@ -60,28 +70,42 @@ module MoSQL
     end
 
     def create_schema(db, clobber=false)
-      @map.values.map(&:values).flatten.each do |collection|
-        meta = collection[:meta]
-        log.info("Creating table '#{meta[:table]}'...")
-        db.send(clobber ? :create_table! : :create_table?, meta[:table]) do
-          collection[:columns].each do |col|
-            column col[:name], col[:type]
+      @map.values.each do |dbspec|
+        dbspec.each do |n, collection|
+          next unless n.is_a?(String)
+          meta = collection[:meta]
+          log.info("Creating table '#{meta[:table]}'...")
+          db.send(clobber ? :create_table! : :create_table?, meta[:table]) do
+            collection[:columns].each do |col|
+              column col[:name], col[:type]
 
-            if col[:source].to_sym == :_id
-              primary_key [col[:name].to_sym]
+              if col[:source].to_sym == :_id
+                primary_key [col[:name].to_sym]
+              end
             end
-          end
-          if meta[:extra_props]
-            column '_extra_props', 'TEXT'
+            if meta[:extra_props]
+              column '_extra_props', 'TEXT'
+            end
           end
         end
       end
     end
 
+    def find_db(db)
+      unless @map.key?(db)
+        @map[db] = @map.values.find do |spec|
+          spec[:meta][:alias].any? { |a| a.match(db) }
+        end
+      end
+      @map[db]
+    end
+
     def find_ns(ns)
       db, collection = ns.split(".")
-      schema = (@map[db] || {})[collection]
-      if schema.nil?
+      unless spec = find_db(db)
+        return nil
+      end
+      unless schema = spec[collection]
         log.debug("No mapping for ns: #{ns}")
         return nil
       end

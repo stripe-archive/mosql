@@ -209,4 +209,28 @@ EOF
             {'a' => { 'c' => 4 }})
     end
   end
+
+  describe 'when handling a map with aliases' do
+  ALIAS_MAP = <<EOF
+---
+db:
+  :meta:
+    :alias: db_[0-9]+
+  collection:
+    :meta:
+      :table: sqltable
+    :columns:
+      - _id: TEXT
+      - var: INTEGER
+EOF
+    before do
+      @map = MoSQL::Schema.new(YAML.load(ALIAS_MAP))
+    end
+
+    it 'can look up collections by aliases' do
+      ns = @map.find_ns("db.collection")
+      assert_equal(ns, @map.find_ns("db_00.collection"))
+      assert_equal(ns, @map.find_ns("db_01.collection"))
+    end
+  end
 end
