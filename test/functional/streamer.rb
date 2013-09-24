@@ -146,5 +146,27 @@ EOF
       assert(sequel[:sqltable].where(:_id => newobjs[0].first, :var => 117).count)
       assert(sequel[:sqltable].where(:_id => newobjs[1].first, :var => 32).count)
     end
+
+    describe 'when working with --unsafe' do
+      it 'raises on error by default' do
+        assert_raises(Sequel::DatabaseError) do
+          @streamer.handle_op({ 'ns' => 'mosql_test.collection',
+                                'op' => 'u',
+                                'o2' => { '_id' => 'a' },
+                                'o'  => { 'var' => 1 << 70 },
+                              })
+        end
+      end
+
+      it 'does not raises on error with :unsafe' do
+        @streamer.options[:unsafe] = true
+        @streamer.handle_op({ 'ns' => 'mosql_test.collection',
+                              'op' => 'u',
+                              'o2' => { '_id' => 'a' },
+                              'o'  => { 'var' => 1 << 70 },
+                            })
+        assert_equal(0, sequel[:sqltable].where(:_id => 'a').count)
+      end
+    end
   end
 end

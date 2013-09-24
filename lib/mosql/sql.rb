@@ -35,7 +35,7 @@ module MoSQL
 
     def upsert_ns(ns, obj)
       h = transform_one_ns(ns, obj)
-      upsert(table_for_ns(ns), @schema.primary_sql_key_for_ns(ns), h)
+      upsert!(table_for_ns(ns), @schema.primary_sql_key_for_ns(ns), h)
     end
 
     # obj must contain an _id field. All other fields will be ignored.
@@ -44,19 +44,6 @@ module MoSQL
       h = transform_one_ns(ns, obj)
       raise "No #{primary_sql_key} found in transform of #{obj.inspect}" if h[primary_sql_key].nil?
       table_for_ns(ns).where(primary_sql_key.to_sym => h[primary_sql_key]).delete
-    end
-
-    def upsert(table, table_primary_key, item)
-      begin
-        upsert!(table, table_primary_key, item)
-      rescue Sequel::DatabaseError => e
-        wrapped = e.wrapped_exception
-        if wrapped.result
-          log.warn("Ignoring row (#{table_primary_key}=#{item[table_primary_key]}): #{e}")
-        else
-          raise e
-        end
-      end
     end
 
     def upsert!(table, table_primary_key, item)

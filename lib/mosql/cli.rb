@@ -90,6 +90,10 @@ module MoSQL
         opts.on("--no-drop-tables", "Don't drop the table if it exists during the initial import") do
           @options[:no_drop_tables] = true
         end
+
+        opts.on("--unsafe", "Ignore rows that cause errors on insert") do
+          @options[:unsafe] = true
+        end
       end
 
       optparse.parse!(@args)

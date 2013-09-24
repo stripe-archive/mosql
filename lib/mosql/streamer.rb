@@ -34,6 +34,22 @@ module MoSQL
       @mongo.db(dbname).collection(collection)
     end
 
+    def unsafe_handle_exceptions(obj)
+      if !options[:unsafe]
+        return yield
+      end
+      begin
+        yield
+      rescue Sequel::DatabaseError => e
+        wrapped = e.wrapped_exception
+        if wrapped.result
+          log.warn("Ignoring row (#{obj.inspect}): #{e}")
+        else
+          raise e
+        end
+      end
+    end
+
     def bulk_upsert(table, ns, items)
       begin
         @schema.copy_data(table.db, ns, items)
@@ -43,7 +59,9 @@ module MoSQL
         items.each do |it|
           h = {}
           cols.zip(it).each { |k,v| h[k] = v }
-          @sql.upsert(table, @schema.primary_sql_key_for_ns(ns), h)
+          unsafe_handle_exceptions(h) do
+            @sql.upsert!(table, @schema.primary_sql_key_for_ns(ns), h)
+          end
         end
       end
     end
@@ -141,7 +159,9 @@ module MoSQL
       sqlid           = @sql.transform_one_ns(ns, { '_id' => _id })[primary_sql_key]
       obj             = collection_for_ns(ns).find_one({:_id => _id})
       if obj
-        @sql.upsert_ns(ns, obj)
+        unsafe_handle_exceptions(obj) do
+          @sql.upsert_ns(ns, obj)
+        end
       else
         @sql.table_for_ns(ns).where(primary_sql_key.to_sym => sqlid).delete()
       end
@@ -185,7 +205,9 @@ module MoSQL
           # 'query' field -- it's not guaranteed to be present on the
           # update.
           update = { '_id' => selector['_id'] }.merge(update)
-          @sql.upsert_ns(ns, update)
+          unsafe_handle_exceptions(update) do
+            @sql.upsert_ns(ns, update)
+          end
         end
       when 'd'
         if options[:ignore_delete]
