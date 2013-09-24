@@ -34,17 +34,15 @@ module MoSQL
       @mongo.db(dbname).collection(collection)
     end
 
-    def unsafe_handle_exceptions(obj)
-      if !options[:unsafe]
-        return yield
-      end
+    def unsafe_handle_exceptions(ns, obj)
       begin
         yield
       rescue Sequel::DatabaseError => e
         wrapped = e.wrapped_exception
-        if wrapped.result
+        if wrapped.result && options[:unsafe]
           log.warn("Ignoring row (#{obj.inspect}): #{e}")
         else
+          log.error("Error processing #{obj.inspect} for #{ns}.")
           raise e
         end
       end
@@ -59,7 +57,7 @@ module MoSQL
         items.each do |it|
           h = {}
           cols.zip(it).each { |k,v| h[k] = v }
-          unsafe_handle_exceptions(h) do
+          unsafe_handle_exceptions(ns, h) do
             @sql.upsert!(table, @schema.primary_sql_key_for_ns(ns), h)
           end
         end
@@ -159,7 +157,7 @@ module MoSQL
       sqlid           = @sql.transform_one_ns(ns, { '_id' => _id })[primary_sql_key]
       obj             = collection_for_ns(ns).find_one({:_id => _id})
       if obj
-        unsafe_handle_exceptions(obj) do
+        unsafe_handle_exceptions(ns, obj) do
           @sql.upsert_ns(ns, obj)
         end
       else
@@ -205,7 +203,7 @@ module MoSQL
           # 'query' field -- it's not guaranteed to be present on the
           # update.
           update = { '_id' => selector['_id'] }.merge(update)
-          unsafe_handle_exceptions(update) do
+          unsafe_handle_exceptions(ns, update) do
             @sql.upsert_ns(ns, update)
           end
         end
