@@ -187,7 +187,9 @@ module MoSQL
         if collection_name == 'system.indexes'
           log.info("Skipping index update: #{op.inspect}")
         else
-          @sql.upsert_ns(ns, op['o'])
+          unsafe_handle_exceptions(ns, op['o'])  do
+            @sql.upsert_ns(ns, op['o'])
+          end
         end
       when 'u'
         selector = op['o2']
