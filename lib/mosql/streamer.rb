@@ -93,12 +93,11 @@ module MoSQL
         start_ts = @mongo['local']['oplog.rs'].find_one({}, {:sort => [['$natural', -1]]})['ts']
       end
 
-      want_dbs = @schema.all_mongo_dbs & @mongo.database_names
-      want_dbs.each do |dbname|
+      @mongo.database_names.each do |dbname|
+        next unless spec = @schema.find_db(dbname)
         log.info("Importing for Mongo DB #{dbname}...")
         db = @mongo.db(dbname)
-        want = Set.new(@schema.collections_for_mongo_db(dbname))
-        db.collections.select { |c| want.include?(c.name) }.each do |collection|
+        db.collections.select { |c| spec.key?(c.name) }.each do |collection|
           ns = "#{dbname}.#{collection.name}"
           import_collection(ns, collection)
           exit(0) if @done
@@ -108,12 +107,17 @@ module MoSQL
       tailer.write_timestamp(start_ts) unless options[:skip_tail]
     end
 
+    def did_truncate; @did_truncate ||= {}; end
+
     def import_collection(ns, collection)
       log.info("Importing for #{ns}...")
       count = 0
       batch = []
       table = @sql.table_for_ns(ns)
-      table.truncate unless options[:no_drop_tables]
+      unless options[:no_drop_tables] || did_truncate[table.first_source]
+        table.truncate
+        did_truncate[table.first_source] = true
+      end
 
       start    = Time.now
       sql_time = 0
