@@ -76,7 +76,11 @@ module MoSQL
           log.info("Creating table '#{meta[:table]}'...")
           db.send(clobber ? :create_table! : :create_table?, meta[:table]) do
             collection[:columns].each do |col|
-              column col[:name], col[:type]
+              opts = {}
+              if col[:source] == '$timestamp'
+                opts[:default] = Sequel.function(:now)
+              end
+              column col[:name], col[:type], opts
 
               if col[:source].to_sym == :_id
                 primary_key [col[:name].to_sym]
@@ -136,6 +140,15 @@ module MoSQL
       val
     end
 
+    def fetch_special_source(obj, source)
+      case source
+      when "$timestamp"
+        Sequel.function(:now)
+      else
+        raise SchemaError.new("Unknown source: #{source}")
+      end
+    end
+
     def transform(ns, obj, schema=nil)
       schema ||= find_ns!(ns)
 
@@ -146,12 +159,16 @@ module MoSQL
         source = col[:source]
         type = col[:type]
 
-        v = fetch_and_delete_dotted(obj, source)
-        case v
-        when BSON::Binary, BSON::ObjectId, Symbol
-          v = v.to_s
-        when Hash, Array
-          v = JSON.dump(v)
+        if source.start_with?("$")
+          v = fetch_special_source(obj, source)
+        else
+          v = fetch_and_delete_dotted(obj, source)
+          case v
+          when BSON::Binary, BSON::ObjectId, Symbol
+            v = v.to_s
+          when Hash, Array
+            v = JSON.dump(v)
+          end
         end
         row << v
       end
@@ -178,10 +195,14 @@ module MoSQL
       row
     end
 
-    def all_columns(schema)
+    def copy_column?(col)
+      col[:source] != '$timestamp'
+    end
+
+    def all_columns(schema, copy=false)
       cols = []
       schema[:columns].each do |col|
-        cols << col[:name]
+        cols << col[:name] unless copy && !copy_column?(col)
       end
       if schema[:meta][:extra_props]
         cols << "_extra_props"
@@ -189,11 +210,15 @@ module MoSQL
       cols
     end
 
+    def all_columns_for_copy(schema)
+      all_columns(schema, true)
+    end
+
     def copy_data(db, ns, objs)
       schema = find_ns!(ns)
       db.synchronize do |pg|
         sql = "COPY \"#{schema[:meta][:table]}\" " +
-          "(#{all_columns(schema).map {|c| "\"#{c}\""}.join(",")}) FROM STDIN"
+          "(#{all_columns_for_copy(schema).map {|c| "\"#{c}\""}.join(",")}) FROM STDIN"
         pg.execute(sql)
         objs.each do |o|
           pg.put_copy_data(transform_to_copy(ns, o, schema) + "\n")
@@ -215,13 +240,15 @@ module MoSQL
         't'
       when false
         'f'
+      when Sequel::SQL::Function
+        nil
       else
         val.to_s.gsub(/([\\\t\n\r])/, '\\\\\\1')
       end
     end
 
     def transform_to_copy(ns, row, schema=nil)
-      row.map { |c| quote_copy(c) }.join("\t")
+      row.map { |c| quote_copy(c) }.compact.join("\t")
     end
 
     def table_for_ns(ns)
