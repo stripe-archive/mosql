@@ -94,6 +94,10 @@ module MoSQL
         opts.on("--unsafe", "Ignore rows that cause errors on insert") do
           @options[:unsafe] = true
         end
+
+        opts.on("--daemonize", "Run in the background as a daemon") do
+          @options[:daemonize] = true
+        end
       end
 
       optparse.parse!(@args)
@@ -158,6 +162,7 @@ module MoSQL
       @streamer.import
 
       unless options[:skip_tail]
+        Process.daemon if options[:daemonize]
         @streamer.optail
       end
     end
