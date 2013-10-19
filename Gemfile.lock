@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mosql (0.2.0)
+    mosql (0.3.0)
       bson_ext
       json
       log4r
@@ -14,23 +14,23 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    bson (1.8.2)
-    bson_ext (1.8.2)
-      bson (~> 1.8.2)
-    json (1.7.7)
+    bson (1.8.5)
+    bson_ext (1.8.5)
+      bson (~> 1.8.5)
+    json (1.8.0)
     log4r (1.1.10)
     metaclass (0.0.1)
     minitest (3.0.0)
     mocha (0.10.5)
       metaclass (~> 0.0.1)
-    mongo (1.8.2)
-      bson (~> 1.8.2)
+    mongo (1.8.5)
+      bson (~> 1.8.5)
     mongoriver (0.1.0)
       bson_ext
       log4r
       mongo (>= 1.7)
     pg (0.14.1)
-    rake (10.0.3)
+    rake (10.1.0)
     sequel (3.44.0)
 
 PLATFORMS
