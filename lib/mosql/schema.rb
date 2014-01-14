@@ -174,25 +174,33 @@ module MoSQL
       end
 
       if schema[:meta][:extra_props]
-        # Kludgily delete binary blobs from _extra_props -- they may
-        # contain invalid UTF-8, which to_json will not properly encode.
-        extra = {}
-        obj.each do |k,v|
-          case v
-          when BSON::Binary
-            next
-          when Float
-            # NaN is illegal in JSON. Translate into null.
-            v = nil if v.nan?
-          end
-          extra[k] = v
-        end
+        extra = sanitize(obj)
         row << JSON.dump(extra)
       end
 
       log.debug { "Transformed: #{row.inspect}" }
 
       row
+    end
+
+    def sanitize(value)
+      # Base64-encode binary blobs from _extra_props -- they may
+      # contain invalid UTF-8, which to_json will not properly encode.
+      case value
+      when Hash
+        ret = {}
+        value.each {|k, v| ret[k] = sanitize(v)}
+        ret
+      when Array
+        value.map {|v| sanitize(v)}
+      when BSON::Binary
+        Base64.encode64(value.to_s)
+      when Float
+        # NaN is illegal in JSON. Translate into null.
+        value.nan? ? nil : value
+      else
+        value
+      end
     end
 
     def copy_column?(col)

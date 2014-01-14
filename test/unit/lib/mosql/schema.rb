@@ -147,6 +147,19 @@ EOF
       assert(extra.key?('nancy'))
       assert_equal(nil, extra['nancy'])
     end
+
+    it 'base64-encodes BSON::Binary blobs in extra_props' do
+      out = @map.transform('db.with_extra_props',
+        {'_id' => 7,
+          'blob' => BSON::Binary.new("\x00\x00\x00"),
+          'embedded' => {'thing' => BSON::Binary.new("\x00\x00\x00")}})
+      extra = JSON.parse(out[1])
+      assert(extra.key?('blob'))
+      assert_equal('AAAA', extra['blob'].strip)
+      refute_nil(extra['embedded'])
+      refute_nil(extra['embedded']['thing'])
+      assert_equal('AAAA', extra['embedded']['thing'].strip)
+    end
   end
 
   describe 'when copying data' do
