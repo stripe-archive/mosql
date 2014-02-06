@@ -224,19 +224,54 @@ module MoSQL
 
     def copy_data(db, ns, objs)
       schema = find_ns!(ns)
-      db.synchronize do |pg|
-        sql = "COPY \"#{schema[:meta][:table]}\" " +
-          "(#{all_columns_for_copy(schema).map {|c| "\"#{c}\""}.join(",")}) FROM STDIN"
-        pg.execute(sql)
-        objs.each do |o|
-          pg.put_copy_data(transform_to_copy(ns, o, schema) + "\n")
+      db.synchronize do |adaptor|
+        # For Postgres we can use the COPY table (*columns) FROM STDIN syntax
+        if db.adapter_scheme == :postgres
+          sql = "COPY \"#{schema[:meta][:table]}\" " +
+            "(#{all_columns_for_copy(schema).map {|c| "\"#{c}\""}.join(",")}) FROM STDIN"
+
+          adaptor.execute(sql)
+
+          objs.each do |o|
+            adaptor.put_copy_data(transform_to_copy(ns, o, schema) + "\n")
+          end
+          adaptor.put_copy_end
+          begin
+            adaptor.get_result.check
+          rescue PGError => e
+            db.send(:raise_error, e)
+          end
+
+        # For MySQL we can use the LOAD DATA INFILE 'file.csv' INTO TABLE table syntax
+        elsif [:mysql, :mysql2].include? db.adapter_scheme
+          tmp_file = 'tmp_mongo.csv'
+          begin
+            File.open(tmp_file, 'w+') { |file| file.write("(#{objs.map { |o|  o.join(',') }.join('),(')})") }
+          rescue Exception => e
+            log.error("Unable to open/create #{tmp_file}")
+            log.error(e.to_s)
+          end
+
+          sql = "LOAD DATA INFILE 'tmp_mongo.csv' INTO TABLE `#{schema[:meta][:table]}`"
+
+          db.execute_dui(sql)
+
+          begin
+            File.delete(tmp_file)
+          rescue Exception => e
+            log.error("Unable to delete #{tmp_file}")
+            log.error(e.to_s)
+          end
+
+        # For all other SQL servers we'll use the standard INSERT INTO table (*columns) VALUES values syntax
+        else
+          sql = "INSERT INTO `#{schema[:meta][:table]}` "
+              + "(#{all_columns_for_copy(schema).map {|c| "\"#{c}\""}.join(",")}) "
+              + "VALUES (#{objs.map { |o|  o.join(',') }.join('),(')})"
+
+          db.execute_insert(sql)
         end
-        pg.put_copy_end
-        begin
-          pg.get_result.check
-        rescue PGError => e
-          db.send(:raise_error, e)
-        end
+
       end
     end
 

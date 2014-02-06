@@ -55,7 +55,7 @@ types. An example collection map might be:
         :columns:
         - id:
           :source: _id
-          :type: TEXT
+          :type: TEXT (Must be VARCHAR(255) for MySQL)
         - author_name:
           :source: author.name
           :type: TEXT
@@ -117,6 +117,7 @@ Once you have a collection map. MoSQL usage is easy. The basic form
 is:
 
     mosql [-c collections.yml] [--sql postgres://sql-server/sql-db] [--mongo mongodb://mongo-uri]
+    mosql [-c collections.yml] [--sql mysql2://username:password@sql-server/sql-db] [--mongo mongodb://mongo-uri]
 
 By default, `mosql` connects to both PostgreSQL and MongoDB instances
 running on default ports on localhost without authentication. You can
