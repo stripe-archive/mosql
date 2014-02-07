@@ -13,12 +13,14 @@ module MoSQL
             :source => ent.fetch(:source),
             :type   => ent.fetch(:type),
             :name   => (ent.keys - [:source, :type]).first,
+            :opts   => ent.select {|k,v| [:default, :index, :null].include? k }
           }
         elsif ent.is_a?(Hash) && ent.keys.length == 1 && ent.values.first.is_a?(String)
           array << {
             :source => ent.first.first,
             :name   => ent.first.first,
-            :type   => ent.first.last
+            :type   => ent.first.last,
+            :opts   => {}
           }
         else
           raise SchemaError.new("Invalid ordered hash entry #{ent.inspect}")
@@ -80,7 +82,8 @@ module MoSQL
               if col[:source] == '$timestamp'
                 opts[:default] = Sequel.function(:now)
               end
-              column col[:name], col[:type], opts
+              opts.merge!(col[:opts])
+              column col[:name].to_sym, col[:type], opts
 
               if col[:source].to_sym == :_id
                 primary_key [col[:name].to_sym]
@@ -242,32 +245,11 @@ module MoSQL
             db.send(:raise_error, e)
           end
 
-        # For MySQL we can use the LOAD DATA INFILE 'file.csv' INTO TABLE table syntax
-        elsif [:mysql, :mysql2].include? db.adapter_scheme
-          tmp_file = 'tmp_mongo.csv'
-          begin
-            File.open(tmp_file, 'w+') { |file| file.write("(#{objs.map { |o|  o.join(',') }.join('),(')})") }
-          rescue Exception => e
-            log.error("Unable to open/create #{tmp_file}")
-            log.error(e.to_s)
-          end
-
-          sql = "LOAD DATA INFILE 'tmp_mongo.csv' INTO TABLE `#{schema[:meta][:table]}`"
-
-          db.execute_dui(sql)
-
-          begin
-            File.delete(tmp_file)
-          rescue Exception => e
-            log.error("Unable to delete #{tmp_file}")
-            log.error(e.to_s)
-          end
-
         # For all other SQL servers we'll use the standard INSERT INTO table (*columns) VALUES values syntax
         else
-          sql = "INSERT INTO `#{schema[:meta][:table]}` "
-              + "(#{all_columns_for_copy(schema).map {|c| "\"#{c}\""}.join(",")}) "
-              + "VALUES (#{objs.map { |o|  o.join(',') }.join('),(')})"
+          sql = "INSERT INTO `#{schema[:meta][:table]}`
+              (#{all_columns_for_copy(schema).map {|c| "\"#{c}\""}.join(",")})
+              VALUES (#{objs.map { |o|  o.join(',') }.join('),(')})"
 
           db.execute_insert(sql)
         end

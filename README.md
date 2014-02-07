@@ -100,6 +100,14 @@ the `title` and `created` attributes, above.
 Every defined collection must include a mapping for the `_id`
 attribute.
 
+You can also specify [column options](http://sequel.jeremyevans.net/rdoc/files/doc/schema_modification_rdoc.html)
+if you use the long-form YAML notation. However, in this case you must
+specify both the type and source for each column even if name and source
+are identical. Supported options are:
+  * :default
+  * :index
+  * :null
+
 `:meta` contains metadata about this collection/table. It is
 required to include at least `:table`, naming the SQL table this
 collection will be mapped to. `extra_props` determines the handling of
@@ -117,12 +125,15 @@ Once you have a collection map. MoSQL usage is easy. The basic form
 is:
 
     mosql [-c collections.yml] [--sql postgres://sql-server/sql-db] [--mongo mongodb://mongo-uri]
-    mosql [-c collections.yml] [--sql mysql2://username:password@sql-server/sql-db] [--mongo mongodb://mongo-uri]
 
 By default, `mosql` connects to both PostgreSQL and MongoDB instances
 running on default ports on localhost without authentication. You can
 point it at different targets using the `--sql` and `--mongo`
 command-line parameters.
+
+You can also specify a different adapter than 'postgres' with the `--sql`
+parameter, such as 'mysql2'. Currently testing has only been done for mysql2
+and postgres, though adapter supported by the Sequel gem should work.
 
 `mosql` will:
 
