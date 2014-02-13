@@ -37,8 +37,7 @@ module MoSQL
         :collections => 'collections.yml',
         :sql    => 'postgres:///',
         :mongo  => 'mongodb://localhost',
-        :verbose => 0,
-        :mongo_slave => false
+        :verbose => 0
       }
       optparse = OptionParser.new do |opts|
         opts.banner = "Usage: #{$0} [options] "
@@ -95,10 +94,6 @@ module MoSQL
         opts.on("--unsafe", "Ignore rows that cause errors on insert") do
           @options[:unsafe] = true
         end
-
-        opts.on("--mongo-slave", "Set to true when connecting to a single, slave node") do
-          @options[:mongo_slave] = true
-        end
       end
 
       optparse.parse!(@args)
@@ -113,7 +108,7 @@ module MoSQL
     end
 
     def connect_mongo
-      @mongo = Mongo::MongoClient.from_uri(options[:mongo], {slave_ok: options[:mongo_slave]})
+      @mongo = Mongo::MongoClient.from_uri(options[:mongo])
       config = @mongo['admin'].command(:ismaster => 1)
       if !config['setName'] && !options[:skip_tail]
         log.warn("`#{options[:mongo]}' is not a replset.")
