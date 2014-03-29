@@ -26,6 +26,12 @@ db:
       - _id: TEXT
     :meta:
       :table: sqltable3
+  with_extra_props_type:
+    :meta:
+      :table: sqltable4
+      :extra_props: JSON
+    :columns:
+      - _id: TEXT
 EOF
 
   before do
@@ -82,26 +88,31 @@ EOF
     db.expects(:create_table?).with('sqltable')
     db.expects(:create_table?).with('sqltable2')
     db.expects(:create_table?).with('sqltable3')
+    db.expects(:create_table?).with('sqltable4')
 
     @map.create_schema(db)
   end
 
   it 'creates a SQL schema with the right fields' do
     db = {}
-    stub_1 = stub()
+    stub_1 = stub('table 1')
     stub_1.expects(:column).with('id', 'TEXT', {})
     stub_1.expects(:column).with('var', 'INTEGER', {})
     stub_1.expects(:column).with('str', 'TEXT', {})
     stub_1.expects(:column).with('_extra_props').never
     stub_1.expects(:primary_key).with([:id])
-    stub_2 = stub()
+    stub_2 = stub('table 2')
     stub_2.expects(:column).with('id', 'TEXT', {})
     stub_2.expects(:column).with('_extra_props', 'TEXT')
     stub_2.expects(:primary_key).with([:id])
-    stub_3 = stub()
+    stub_3 = stub('table 3')
     stub_3.expects(:column).with('_id', 'TEXT', {})
     stub_3.expects(:column).with('_extra_props').never
     stub_3.expects(:primary_key).with([:_id])
+    stub_4 = stub('table 4')
+    stub_4.expects(:column).with('_id', 'TEXT', {})
+    stub_4.expects(:column).with('_extra_props', 'JSON')
+    stub_4.expects(:primary_key).with([:_id])
     (class << db; self; end).send(:define_method, :create_table?) do |tbl, &blk|
       case tbl
       when "sqltable"
@@ -110,6 +121,8 @@ EOF
         o = stub_2
       when "sqltable3"
         o = stub_3
+      when "sqltable4"
+        o = stub_4
       else
         assert(false, "Tried to create an unexpected table: #{tbl}")
       end
