@@ -307,4 +307,23 @@ EOF
       end
     end
   end
+
+  describe 'dotted names' do
+    MAP = <<EOF
+db:
+  my.collection:
+    :meta:
+      :table: table
+    :columns:
+      - _id: TEXT
+EOF
+
+    it 'handles dotted names' do
+      @map = MoSQL::Schema.new(YAML.load(MAP))
+      collections = @map.collections_for_mongo_db('db')
+      assert(collections.include?('my.collection'),
+        "#{collections} doesn't include `my.collection`")
+      assert(@map.find_ns('db.my.collection'))
+    end
+  end
 end

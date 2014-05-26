@@ -110,7 +110,7 @@ module MoSQL
     end
 
     def find_ns(ns)
-      db, collection = ns.split(".")
+      db, collection = ns.split(".", 2)
       unless spec = find_db(db)
         return nil
       end
