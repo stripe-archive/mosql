@@ -172,8 +172,10 @@ module MoSQL
           case v
           when BSON::Binary, BSON::ObjectId, Symbol
             v = v.to_s
-          when Hash, Array
+          when Hash
             v = JSON.dump(v)
+          when Array
+            v = Sequel.pg_array(v)
           end
         end
         row << v
