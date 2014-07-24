@@ -175,7 +175,10 @@ module MoSQL
           when Hash
             v = JSON.dump(v)
           when Array
-            v = Sequel.pg_array(v)
+            if not col[:array_type]
+              col[:array_type] = type.split(/\s+/).first.to_sym
+            end
+            v = Sequel.pg_array(v, col[:array_type])
           end
         end
         row << v
