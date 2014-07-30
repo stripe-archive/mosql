@@ -169,16 +169,24 @@ If it encounters a MongoDB object with fields not listed in the
 collection map, it will discard the extra fields, unless
 `:extra_props` is set in the `:meta` hash. If it is, it will collect
 any missing fields, JSON-encode them in a hash, and store the
-resulting text in `_extra_props` in SQL. It's up to you to do
-something useful with the JSON. One option is to use [plv8][plv8] to
-parse them inside PostgreSQL, or you can just pull the JSON out whole
-and parse it in application code.
+resulting text in `_extra_props` in SQL.
 
-This is also currently the only way to handle array or object values
-inside records -- specify `:extra_props`, and they'll get JSON-encoded
-into `_extra_props`. There's no reason we couldn't support
-JSON-encoded values for individual columns/fields, but we haven't
-written that code yet.
+As of PostgreSQL 9.3, you can declare columns as type "JSON" and use
+the [native JSON support][pg-json] to inspect inside of JSON-encoded
+types. In earlier versions, you can write code in an extension
+language, such as [plv8][plv8].
+
+[pg-json]: http://www.postgresql.org/docs/9.3/static/functions-json.html
+
+## Non-scalar types
+
+MoSQL supports array types, using the `INTEGER ARRAY` array type
+syntax. This will cause MoSQL to create the column as an array type in
+PostgreSQL, and insert rows appropriately-formatted.
+
+Fields with hash values, or array values that are not in an
+ARRAY-typed column, will be transformed into JSON TEXT strings before
+being inserted into PostgreSQL.
 
 [plv8]: http://code.google.com/p/plv8js/
 
