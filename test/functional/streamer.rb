@@ -20,6 +20,7 @@ mosql_test:
     :columns:
       - _id: TEXT
       - var: INTEGER
+      - arry: INTEGER ARRAY
   renameid:
     :meta:
       :table: sqltable2
@@ -113,7 +114,7 @@ EOF
       it 'inserts multiple rows' do
         objs = [
                 { '_id' => BSON::ObjectId.new, 'var' => 0 },
-                { '_id' => BSON::ObjectId.new, 'var' => 1 },
+                { '_id' => BSON::ObjectId.new, 'var' => 1, 'arry' => [1, 2] },
                 { '_id' => BSON::ObjectId.new, 'var' => 3 },
                ].map { |o| @map.transform('mosql_test.collection', o) }
 
