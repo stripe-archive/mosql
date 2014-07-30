@@ -42,6 +42,7 @@ db:
 EOF
 
   before do
+    Sequel.extension(:pg_array)
     @map = MoSQL::Schema.new(YAML.load(TEST_MAP))
   end
 
