@@ -10,6 +10,7 @@ db:
     :columns:
       - _id: TEXT
       - var: INTEGER
+      - arry: INTEGER ARRAY
   with_extra_props:
     :meta:
       :table: sqltable2
@@ -44,7 +45,7 @@ EOF
   def table3; @sequel[:sqltable3]; end
 
   it 'Creates the tables with the right columns' do
-    assert_equal(Set.new([:_id, :var]),
+    assert_equal(Set.new([:_id, :var, :arry]),
                  Set.new(table.columns))
     assert_equal(Set.new([:_id, :_extra_props]),
                  Set.new(table2.columns))
@@ -53,7 +54,7 @@ EOF
   it 'Can COPY data' do
     objects = [
                {'_id' => "a", 'var' => 0},
-               {'_id' => "b", 'var' => 1},
+               {'_id' => "b", 'var' => 1, 'arry' => "{1, 2, 3}"},
                {'_id' => "c"},
                {'_id' => "d", 'other_var' => "hello"}
               ]
@@ -63,6 +64,7 @@ EOF
     assert_equal(%w[a b c d], rows.map { |r| r[:_id] })
     assert_equal(nil, rows[2][:var])
     assert_equal(nil, rows[3][:var])
+    assert_equal([1 ,2, 3], rows[1][:arry])
   end
 
   it 'Can COPY dotted data' do

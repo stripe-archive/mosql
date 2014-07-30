@@ -5,17 +5,17 @@ module MoSQL
     include MoSQL::Logging
 
     def to_array(lst)
-      array = []
-      lst.each do |ent|
+      lst.map do |ent|
+        col = nil
         if ent.is_a?(Hash) && ent[:source].is_a?(String) && ent[:type].is_a?(String)
           # new configuration format
-          array << {
+          col = {
             :source => ent.fetch(:source),
             :type   => ent.fetch(:type),
             :name   => (ent.keys - [:source, :type]).first,
           }
         elsif ent.is_a?(Hash) && ent.keys.length == 1 && ent.values.first.is_a?(String)
-          array << {
+          col = {
             :source => ent.first.first,
             :name   => ent.first.first,
             :type   => ent.first.last
@@ -24,8 +24,12 @@ module MoSQL
           raise SchemaError.new("Invalid ordered hash entry #{ent.inspect}")
         end
 
+        if !col.key?(:array_type) && /\A(.+)\s+array\z/i.match(col[:type])
+          col[:array_type] = $1
+        end
+
+        col
       end
-      array
     end
 
     def check_columns!(ns, spec)
@@ -172,8 +176,14 @@ module MoSQL
           case v
           when BSON::Binary, BSON::ObjectId, Symbol
             v = v.to_s
-          when Hash, Array
+          when Hash
             v = JSON.dump(v)
+          when Array
+            if col[:array_type]
+              v = Sequel.pg_array(v, col[:array_type])
+            else
+              v = JSON.dump(v)
+            end
           end
         end
         row << v

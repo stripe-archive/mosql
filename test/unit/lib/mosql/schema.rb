@@ -13,6 +13,7 @@ db:
         :type: TEXT
       - var: INTEGER
       - str: TEXT
+      - arry: INTEGER ARRAY
   with_extra_props:
     :meta:
       :table: sqltable2
@@ -32,9 +33,16 @@ db:
       :extra_props: JSON
     :columns:
       - _id: TEXT
+  treat_array_as_string:
+    :columns:
+      - _id: TEXT
+      - arry: TEXT
+    :meta:
+      :table: sqltable5
 EOF
 
   before do
+    Sequel.extension(:pg_array)
     @map = MoSQL::Schema.new(YAML.load(TEST_MAP))
   end
 
@@ -89,6 +97,7 @@ EOF
     db.expects(:create_table?).with('sqltable2')
     db.expects(:create_table?).with('sqltable3')
     db.expects(:create_table?).with('sqltable4')
+    db.expects(:create_table?).with('sqltable5')
 
     @map.create_schema(db)
   end
@@ -99,6 +108,7 @@ EOF
     stub_1.expects(:column).with('id', 'TEXT', {})
     stub_1.expects(:column).with('var', 'INTEGER', {})
     stub_1.expects(:column).with('str', 'TEXT', {})
+    stub_1.expects(:column).with('arry', 'INTEGER ARRAY', {})
     stub_1.expects(:column).with('_extra_props').never
     stub_1.expects(:primary_key).with([:id])
     stub_2 = stub('table 2')
@@ -113,6 +123,10 @@ EOF
     stub_4.expects(:column).with('_id', 'TEXT', {})
     stub_4.expects(:column).with('_extra_props', 'JSON')
     stub_4.expects(:primary_key).with([:_id])
+    stub_5 = stub('table 5')
+    stub_5.expects(:column).with('_id', 'TEXT', {})
+    stub_5.expects(:column).with('arry', 'TEXT', {})
+    stub_5.expects(:primary_key).with([:_id])
     (class << db; self; end).send(:define_method, :create_table?) do |tbl, &blk|
       case tbl
       when "sqltable"
@@ -123,6 +137,8 @@ EOF
         o = stub_3
       when "sqltable4"
         o = stub_4
+      when "sqltable5"
+        o = stub_5
       else
         assert(false, "Tried to create an unexpected table: #{tbl}")
       end
@@ -133,8 +149,8 @@ EOF
 
   describe 'when transforming' do
     it 'transforms rows' do
-      out = @map.transform('db.collection', {'_id' => "row 1", 'var' => 6, 'str' => 'a string'})
-      assert_equal(["row 1", 6, 'a string'], out)
+      out = @map.transform('db.collection', {'_id' => "row 1", 'var' => 6, 'str' => 'a string', 'arry' => [1,2,3]})
+      assert_equal(["row 1", 6, 'a string', [1,2,3]], out)
     end
 
     it 'Includes extra props' do
@@ -145,13 +161,13 @@ EOF
     end
 
     it 'gets all_columns right' do
-      assert_equal(['id', 'var', 'str'], @map.all_columns(@map.find_ns('db.collection')))
+      assert_equal(['id', 'var', 'str', 'arry'], @map.all_columns(@map.find_ns('db.collection')))
       assert_equal(['id', '_extra_props'], @map.all_columns(@map.find_ns('db.with_extra_props')))
     end
 
     it 'stringifies symbols' do
-      out = @map.transform('db.collection', {'_id' => "row 1", 'str' => :stringy})
-      assert_equal(["row 1", nil, 'stringy'], out)
+      out = @map.transform('db.collection', {'_id' => "row 1", 'str' => :stringy, 'arry' => [1,2,3]})
+      assert_equal(["row 1", nil, 'stringy', [1,2,3]], out)
     end
 
     it 'changes NaN to null in extra_props' do
@@ -172,6 +188,12 @@ EOF
       refute_nil(extra['embedded'])
       refute_nil(extra['embedded']['thing'])
       assert_equal('AAAA', extra['embedded']['thing'].strip)
+    end
+
+    it 'will treat arrays as strings when schame says to' do
+      out = @map.transform('db.treat_array_as_string', {'_id' => 1, 'arry' => [1, 2, 3]})
+      assert_equal(out[0], 1)
+      assert_equal(out[1], '[1,2,3]')
     end
   end
 
