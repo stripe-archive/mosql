@@ -99,7 +99,7 @@ module MoSQL
         db = @mongo.db(dbname)
         db.collections.select { |c| spec.key?(c.name) }.each do |collection|
           ns = "#{dbname}.#{collection.name}"
-          import_collection(ns, collection)
+          import_collection(ns, collection, spec[collection.name][:meta][:filter])
           exit(0) if @done
         end
       end
@@ -109,7 +109,7 @@ module MoSQL
 
     def did_truncate; @did_truncate ||= {}; end
 
-    def import_collection(ns, collection)
+    def import_collection(ns, collection, filter)
       log.info("Importing for #{ns}...")
       count = 0
       batch = []
@@ -121,7 +121,7 @@ module MoSQL
 
       start    = Time.now
       sql_time = 0
-      collection.find(nil, :batch_size => BATCH) do |cursor|
+      collection.find(filter, :batch_size => BATCH) do |cursor|
         with_retries do
           cursor.each do |obj|
             batch << @schema.transform(ns, obj)
