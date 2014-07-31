@@ -29,6 +29,30 @@ mosql_test:
         :source: _id
         :type: TEXT
       - goats: INTEGER
+
+filter_test:
+  collection:
+    :meta:
+      :table: filter_sqltable
+      :filter:
+        :_id:
+          '$gte': !ruby/object:BSON::ObjectId
+            data:
+            - 83
+            - 179
+            - 75
+            - 128
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+    :columns:
+      - _id: TEXT
+      - var: INTEGER
 EOF
 
     before do
@@ -108,6 +132,23 @@ EOF
                             'o' => { '_id' => o['_id'] },
                           })
       assert_equal(0, sequel[:sqltable2].where(:id => o['_id'].to_s).count)
+    end
+
+    it 'filters unwanted records' do
+      data = [{:_id => BSON::ObjectId.from_time(Time.utc(2014, 7, 1)), :var => 2},
+              {:_id => BSON::ObjectId.from_time(Time.utc(2014, 7, 2)), :var => 3}]
+      collection = mongo["filter_test"]["collection"]
+      collection.drop
+      data.map { |rec| collection.insert(rec)}
+
+      @streamer.options[:skip_tail] = true
+      @streamer.initial_import
+
+      inserted_records = @sequel[:filter_sqltable].select
+      assert_equal(1, inserted_records.count)
+      record = inserted_records.first
+      data[1][:_id] = data[1][:_id].to_s
+      assert_equal(data[1], record)
     end
 
     describe '.bulk_upsert' do
