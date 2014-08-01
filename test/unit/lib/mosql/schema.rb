@@ -39,6 +39,23 @@ db:
       - arry: TEXT
     :meta:
       :table: sqltable5
+  with_composite_key:
+    :meta:
+      :table: sqltable6
+      :composite_key:
+        - store
+        - time
+    :columns:
+      - store:
+        :source: _id.s
+        :type: TEXT
+      - time:
+        :source: id.t
+        :type: TEXT
+      - var:
+        :source: var
+        :type: TEXT
+
 EOF
 
   before do
@@ -87,8 +104,8 @@ EOF
   end
 
   it 'Can find the primary key of the SQL table' do
-    assert_equal('id', @map.primary_sql_key_for_ns('db.collection'))
-    assert_equal('_id', @map.primary_sql_key_for_ns('db.old_conf_syntax'))
+    assert_equal(['id'], @map.primary_sql_key_for_ns('db.collection'))
+    assert_equal(['_id'], @map.primary_sql_key_for_ns('db.old_conf_syntax'))
   end
 
   it 'can create a SQL schema' do
@@ -98,6 +115,7 @@ EOF
     db.expects(:create_table?).with('sqltable3')
     db.expects(:create_table?).with('sqltable4')
     db.expects(:create_table?).with('sqltable5')
+    db.expects(:create_table?).with('sqltable6')
 
     @map.create_schema(db)
   end
@@ -127,6 +145,11 @@ EOF
     stub_5.expects(:column).with('_id', 'TEXT', {})
     stub_5.expects(:column).with('arry', 'TEXT', {})
     stub_5.expects(:primary_key).with([:_id])
+    stub_6 = stub('table 6')
+    stub_6.expects(:column).with('store', 'TEXT', {})
+    stub_6.expects(:column).with('time', 'TEXT', {})
+    stub_6.expects(:column).with('var', 'TEXT', {})
+    stub_6.expects(:primary_key).with([:store, :time])
     (class << db; self; end).send(:define_method, :create_table?) do |tbl, &blk|
       case tbl
       when "sqltable"
@@ -139,6 +162,8 @@ EOF
         o = stub_4
       when "sqltable5"
         o = stub_5
+      when "sqltable6"
+        o = stub_6
       else
         assert(false, "Tried to create an unexpected table: #{tbl}")
       end

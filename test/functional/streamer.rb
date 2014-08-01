@@ -53,6 +53,22 @@ filter_test:
     :columns:
       - _id: TEXT
       - var: INTEGER
+
+composite_key_test:
+  collection:
+    :meta:
+      :table: composite_table
+      :composite_key:
+        - store
+        - time
+    :columns:
+      - store:
+        :source: _id.s
+        :type: TEXT
+      - time:
+        :source: _id.t
+        :type: TIMESTAMP
+      - var: TEXT
 EOF
 
     before do
@@ -61,6 +77,7 @@ EOF
 
       @sequel.drop_table?(:sqltable)
       @sequel.drop_table?(:sqltable2)
+      @sequel.drop_table(:composite_table)
       @map.create_schema(@sequel)
 
       @streamer = build_streamer
@@ -149,6 +166,39 @@ EOF
       record = inserted_records.first
       data[1][:_id] = data[1][:_id].to_s
       assert_equal(data[1], record)
+    end
+
+    it 'handles "u" ops with a compsite key' do
+      date = Time.utc(2014, 7, 1)
+      o = {'_id' => {'s' => 'asdf', 't' => date}, 'var' => 'data'}
+      collection = mongo["composite_key_test"]["collection"]
+      collection.drop
+      collection.insert(o)
+
+      @streamer.options[:skip_tail] = true
+      @streamer.initial_import
+
+      collection.update({ '_id' => { 's' => 'asdf', 't' => date}}, { '$set' => { 'var' => 'new_data'}})
+      @streamer.handle_op({'ns' => 'composite_key_test.collection',
+                           'op' => 'u',
+                           'o2' => { '_id' => { 's' => 'asdf', 't' => date}},
+                           'o'  => { '$set' => { 'var' => 'new_data'}}
+                           })
+
+      assert_equal(0, @sequel[:composite_table].where(:var => "data").count)
+      assert_equal(1, @sequel[:composite_table].where(:var => "new_data").count)
+    end
+
+    it 'handles composite keys' do
+      o = {'_id' => {'s' => 'asdf', 't' => Time.new}, 'var' => 'data'}
+      collection = mongo["composite_key_test"]["collection"]
+      collection.drop
+      collection.insert(o)
+
+      @streamer.options[:skip_tail] = true
+      @streamer.initial_import
+
+      assert_equal(1, @sequel[:composite_table].count)
     end
 
     describe '.bulk_upsert' do
