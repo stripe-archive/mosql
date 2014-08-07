@@ -71,6 +71,10 @@ module MoSQL
           @options[:ignore_delete] = true
         end
 
+        opts.on("--only-db [dbname]", "Don't scan for mongo dbs, just use the one specified") do |dbname|
+          @options[:dbname] = dbname
+        end
+
         opts.on("--tail-from [timestamp]", "Start tailing from the specified UNIX timestamp") do |ts|
           @options[:tail_from] = ts
         end
