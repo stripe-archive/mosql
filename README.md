@@ -154,10 +154,17 @@ For advanced scenarios, you can pass options to control mosql's
 behavior. If you pass `--skip-tail`, mosql will do the initial import,
 but not tail the oplog. This could be used, for example, to do an
 import off of a backup snapshot, and then start the tailer on the live
-cluster.
+cluster. This can also be useful for hosted services where you do not
+have access to the oplog.
 
 If you need to force a fresh reimport, run `--reimport`, which will
 cause `mosql` to drop tables, create them anew, and do another import.
+
+Normaly, MoSQL will scan through a list of the databases on the mongo
+server you connect to. You avoid this behavior by specifiying a specific
+mongo db to connect to with the `--only-db [dbname]` option. This is
+useful for hosted services which do not let you list all databases (via 
+the `listDatabases` command).
 
 ## Schema mismatches and _extra_props
 

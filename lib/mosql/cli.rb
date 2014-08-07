@@ -71,7 +71,7 @@ module MoSQL
           @options[:ignore_delete] = true
         end
 
-        opts.on("--use-db-name [dbname]", "Don't scan for mongo dbs, just use the one specified") do |dbname|
+        opts.on("--only-db [dbname]", "Don't scan for mongo dbs, just use the one specified") do |dbname|
           @options[:dbname] = dbname
         end
 
