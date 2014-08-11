@@ -170,6 +170,13 @@ EOF
       assert_equal(["row 1", nil, 'stringy', [1,2,3]], out)
     end
 
+    it 'extracts object ids from a DBRef' do
+      oid = BSON::ObjectId.new
+      out = @map.transform('db.collection', {'_id' => "row 1",
+          'str' => BSON::DBRef.new('db.otherns', oid)})
+      assert_equal(["row 1", nil, oid.to_s, nil], out)
+    end
+
     it 'changes NaN to null in extra_props' do
       out = @map.transform('db.with_extra_props', {'_id' => 7, 'nancy' => 0.0/0.0})
       extra = JSON.parse(out[1])

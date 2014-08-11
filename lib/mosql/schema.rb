@@ -176,6 +176,8 @@ module MoSQL
           case v
           when BSON::Binary, BSON::ObjectId, Symbol
             v = v.to_s
+          when BSON::DBRef
+            v = v.object_id.to_s
           when Hash
             v = JSON.dump(v)
           when Array
