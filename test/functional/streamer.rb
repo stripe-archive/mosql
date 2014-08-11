@@ -77,7 +77,7 @@ EOF
 
       @sequel.drop_table?(:sqltable)
       @sequel.drop_table?(:sqltable2)
-      @sequel.drop_table(:composite_table)
+      @sequel.drop_table?(:composite_table)
       @map.create_schema(@sequel)
 
       @streamer = build_streamer
