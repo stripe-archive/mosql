@@ -181,6 +181,7 @@ module MoSQL
           when Hash
             v = JSON.dump(v)
           when Array
+            v.map! {|item| item.is_a?(BSON::DBRef) ? item.object_id.to_s : item}
             if col[:array_type]
               v = Sequel.pg_array(v, col[:array_type])
             else
