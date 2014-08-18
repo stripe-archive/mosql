@@ -177,6 +177,13 @@ EOF
       assert_equal(["row 1", nil, oid.to_s, nil], out)
     end
 
+    it 'converts DBRef to object id in arrays' do
+      oid = [ BSON::ObjectId.new, BSON::ObjectId.new]
+      o = {'_id' => "row 1", "str" => [ BSON::DBRef.new('db.otherns', oid[0]), BSON::DBRef.new('db.otherns', oid[1]) ] }
+      out = @map.transform('db.collection', o)
+      assert_equal(["row 1", nil, JSON.dump(oid.map! {|o| o.to_s}), nil ], out)
+    end
+
     it 'changes NaN to null in extra_props' do
       out = @map.transform('db.with_extra_props', {'_id' => 7, 'nancy' => 0.0/0.0})
       extra = JSON.parse(out[1])
