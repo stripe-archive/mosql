@@ -77,6 +77,8 @@ module MoSQL
         dbspec.each do |n, collection|
           next unless n.is_a?(String)
           meta = collection[:meta]
+          composite_key = meta[:composite_key]
+          keys = []
           log.info("Creating table '#{meta[:table]}'...")
           db.send(clobber ? :create_table! : :create_table?, meta[:table]) do
             collection[:columns].each do |col|
@@ -86,10 +88,14 @@ module MoSQL
               end
               column col[:name], col[:type], opts
 
-              if col[:source].to_sym == :_id
-                primary_key [col[:name].to_sym]
+              if composite_key and composite_key.include?(col[:name])
+                keys << col[:name].to_sym
+              elsif not composite_key and col[:source].to_sym == :_id
+                keys << col[:name].to_sym
               end
             end
+
+            primary_key keys
             if meta[:extra_props]
               type =
                 if meta[:extra_props] == "JSON"
@@ -293,7 +299,15 @@ module MoSQL
     end
 
     def primary_sql_key_for_ns(ns)
-      find_ns!(ns)[:columns].find {|c| c[:source] == '_id'}[:name]
+      ns = find_ns!(ns)
+      keys = []
+      if ns[:meta][:composite_key]
+        keys = ns[:meta][:composite_key]
+      else
+        keys << ns[:columns].find {|c| c[:source] == '_id'}[:name]
+      end
+
+      return keys
     end
   end
 end

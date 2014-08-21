@@ -174,16 +174,21 @@ module MoSQL
       end
     end
 
-    def sync_object(ns, _id)
-      primary_sql_key = @schema.primary_sql_key_for_ns(ns)
-      sqlid           = @sql.transform_one_ns(ns, { '_id' => _id })[primary_sql_key]
-      obj             = collection_for_ns(ns).find_one({:_id => _id})
+    def sync_object(ns, selector)
+      obj = collection_for_ns(ns).find_one(selector)
       if obj
         unsafe_handle_exceptions(ns, obj) do
           @sql.upsert_ns(ns, obj)
         end
       else
-        @sql.table_for_ns(ns).where(primary_sql_key.to_sym => sqlid).delete()
+        primary_sql_keys = @schema.primary_sql_key_for_ns(ns)
+        schema = @schema.find_ns!(ns)
+        query = {}
+        primary_sql_keys.each do |key|
+          source =  schema[:columns].find {|c| c[:name] == key }[:source]
+          query[key] = selector[source]
+        end
+        @sql.table_for_ns(ns).where(query).delete()
       end
     end
 
@@ -218,15 +223,24 @@ module MoSQL
         update   = op['o']
         if update.keys.any? { |k| k.start_with? '$' }
           log.debug("resync #{ns}: #{selector['_id']} (update was: #{update.inspect})")
-          sync_object(ns, selector['_id'])
+          sync_object(ns, selector)
         else
-          log.debug("upsert #{ns}: _id=#{selector['_id']}")
 
           # The update operation replaces the existing object, but
           # preserves its _id field, so grab the _id off of the
           # 'query' field -- it's not guaranteed to be present on the
           # update.
-          update = { '_id' => selector['_id'] }.merge(update)
+          primary_sql_keys = @schema.primary_sql_key_for_ns(ns)
+          schema = @schema.find_ns!(ns)
+          keys = {}
+          primary_sql_keys.each do |key|
+            source =  schema[:columns].find {|c| c[:name] == key }[:source]
+            keys[key] = selector[source]
+          end
+
+          log.debug("upsert #{ns}: #{keys}")
+
+          update = keys.merge(update)
           unsafe_handle_exceptions(ns, update) do
             @sql.upsert_ns(ns, update)
           end
