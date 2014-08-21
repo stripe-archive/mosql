@@ -269,6 +269,8 @@ module MoSQL
         'f'
       when Sequel::SQL::Function
         nil
+      when DateTime, Time
+        val.strftime("%FT%T.%6N %z")
       else
         val.to_s.gsub(/([\\\t\n\r])/, '\\\\\\1')
       end

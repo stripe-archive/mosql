@@ -252,4 +252,54 @@ EOF
       assert_equal(ids.map(&:to_s).sort, sqlobjs.map { |o| o[:_id] }.sort)
     end
   end
+  describe 'timestamps' do
+  TIMESTAMP_MAP = <<EOF
+---
+db:
+  has_timestamp:
+    :meta:
+      :table: has_timestamp
+    :columns:
+      - _id: TEXT
+      - ts: timestamp
+EOF
+
+    before do
+      Sequel.default_timezone = :utc
+
+      @map = MoSQL::Schema.new(YAML.load(TIMESTAMP_MAP))
+      @adapter = MoSQL::SQLAdapter.new(@map, sql_test_uri)
+
+      mongo['db']['has_timestamp'].drop
+      @sequel.drop_table?(:has_timestamp)
+      @map.create_schema(@sequel)
+
+      @streamer = build_streamer
+    end
+
+    it 'preserves milliseconds on import' do
+      ts = Time.utc(2014, 8, 7, 6, 54, 32, 123000)
+      mongo['db']['has_timestamp'].insert({ts: ts})
+      @streamer.options[:skip_tail] = true
+      @streamer.initial_import
+
+      row = @sequel[:has_timestamp].select.to_a
+      assert_equal(1, row.length)
+      assert_equal(ts.to_i, row.first[:ts].to_i)
+      assert_equal(ts.tv_usec, row.first[:ts].tv_usec)
+    end
+
+    it 'preserves milliseconds on tailing' do
+      ts = Time.utc(2006,01,02, 15,04,05,678000)
+      id = mongo['db']['has_timestamp'].insert({ts: ts})
+      op = mongo['local']['oplog.rs'].find_one(
+        {'ns' => 'db.has_timestamp'},
+        {sort: { '$natural' => -1}})
+      assert(op)
+      @streamer.handle_op(op)
+      got = @sequel[:has_timestamp].where(:_id => id.to_s).select.first[:ts]
+      assert_equal(ts.to_i, got.to_i)
+      assert_equal(ts.tv_usec, got.tv_usec)
+    end
+  end
 end
