@@ -292,11 +292,15 @@ EOF
     it 'preserves milliseconds on tailing' do
       ts = Time.utc(2006,01,02, 15,04,05,678000)
       id = mongo['db']['has_timestamp'].insert({ts: ts})
-      op = mongo['local']['oplog.rs'].find_one(
-        {'ns' => 'db.has_timestamp'},
-        {sort: { '$natural' => -1}})
-      assert(op)
-      @streamer.handle_op(op)
+      @streamer.handle_op(
+        {
+          "ts" => {"t" => 1408647630, "i" => 4},
+          "h"  => -965650193548512059,
+          "v"  => 2,
+          "op" => "i",
+          "ns" => "db.has_timestamp",
+          "o"  => mongo['db']['has_timestamp'].find_one({_id: id})
+        })
       got = @sequel[:has_timestamp].where(:_id => id.to_s).select.first[:ts]
       assert_equal(ts.to_i, got.to_i)
       assert_equal(ts.tv_usec, got.tv_usec)
