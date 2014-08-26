@@ -229,8 +229,16 @@ Patches and contributions are welcome! Please fork the project and
 open a pull request on [github][github], or just report issues.
 
 MoSQL includes a small but hopefully-growing test suite. It assumes a
-running PostgreSQL and MongoDB instance on the local host; You can
-point it at a different target via environment variables; See
-`test/functional/_lib.rb` for more information.
+running PostgreSQL and MongoDB instance on the local host. To run the
+test suite, first install all of MoSQL's dependencies:
+```shell
+bundle install
+```
+Then, run the tests:
+```shell
+rake test
+```
+You can also point the suite at a different target via environment
+variables; See `test/functional/_lib.rb` for more information.
 
 [github]: https://github.com/stripe/mosql

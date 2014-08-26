@@ -199,6 +199,15 @@ module MoSQL
         return
       end
 
+      # First, check if this was an operation performed via applyOps. If so, call handle_op with
+      # for each op that was applied.
+      # The oplog format of applyOps commands can be viewed here:
+      # https://groups.google.com/forum/#!topic/mongodb-user/dTf5VEJJWvY
+      if op['op'] == 'c' && (ops = op['o']['applyOps'])
+        ops.each { |op| handle_op(op) }
+        return
+      end
+
       unless @schema.find_ns(op['ns'])
         log.debug("Skipping op for unknown ns #{op['ns']}...")
         return
