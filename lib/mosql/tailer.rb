@@ -5,12 +5,16 @@ module MoSQL
         db.create_table?(tablename) do
           column :service,     'TEXT'
           column :timestamp,   'INTEGER'
-          column :placeholder, 'BLOB'
+          column :placeholder, 'BYTEA'
           primary_key [:service]
         end
       else
-        # Try to do seamless upgrades
-        db.add_column(tablename, :placeholder, 'BLOB')
+        # Try to do seamless upgrades from before-tokumx times
+        begin
+          db.add_column(tablename, :placeholder, 'BYTEA')
+        rescue Sequel::DatabaseError => e
+          raise unless MoSQL::SQLAdapter.duplicate_column_error?(e)
+        end
       end
 
       db[tablename.to_sym]
@@ -23,40 +27,39 @@ module MoSQL
     end
 
     def read_state
-      row = @table.where(:service => @service).select([:timestamp, :placeholder]).first
+      row = @table.where(:service => @service).first
       return nil unless row
-      # try to do seamless upgrades - use timestamp as placeholder if no
+      # try to do seamless upgrades - latest operation before or at timestamp if no
       # placeholder exists
+      puts("Read_state: #{row} #{row.class}")
+      result = {}
+      result['time'] = Time.at(row.fetch(:timestamp))
+      puts(result)
       if row[:placeholder].nil?
-        row[:placeholder] = to_blob(BSON::Timestamp.new(row[:timestamp], 0))
+        result['placeholder'] = from_blob(row[:placeholder])
+      else
+        result['placeholder'] = most_recent_operation(result['time'])
       end
-      {
-        :time => Time.at(row[:timestamp]),
-        :placeholder => from_blob(row[:placeholder])
-      }
+      result
     end
 
-    def write_timestamp(state)
-      time = state[:time].to_i
-      placeholder = to_blob(state[:placeholder])
+    def write_state(state)
+      data = {
+        :service => @service,
+        :timestamp => state['time'].to_i,
+        :placeholder => to_blob(state['placeholder'])
+      }
 
       unless @did_insert
         begin
-          @table.insert({
-            :service => @service,
-            :timestamp => time,
-            :placeholder => placeholder
-          })
+          @table.insert(data)
         rescue Sequel::DatabaseError => e
           raise unless MoSQL::SQLAdapter.duplicate_key_error?(e)
         end
         @did_insert = true
       end
 
-      @table.where(:service => @service).update({
-        :timestamp => time,
-        :placeholder => placeholder
-      })
+      @table.where(:service => @service).update(data)
     end
 
     private

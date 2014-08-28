@@ -77,6 +77,10 @@ module MoSQL
       # how to get at this error code....
       e.wrapped_exception.result.error_field(PG::Result::PG_DIAG_SQLSTATE) == "23505"
     end
+
+    def self.duplicate_column_error?(e)
+      e.wrapped_exception.result.error_field(PG::Result::PG_DIAG_SQLSTATE) == "42701"
+    end
   end
 end
 

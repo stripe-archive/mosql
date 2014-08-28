@@ -90,7 +90,10 @@ module MoSQL
       @schema.create_schema(@sql.db, !options[:no_drop_tables])
 
       unless options[:skip_tail]
-        start_state = state_for(latest_oplog_entry)
+        start_state = {
+          'time' => nil,
+          'placeholder' => @tailer.most_recent_operation
+        }
       end
 
       dbnames = []
