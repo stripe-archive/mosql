@@ -24,7 +24,7 @@ module MoSQL
     end
 
     def import
-      if options[:reimport] || tailer.read_timestamp.nil?
+      if options[:reimport] || tailer.read_placeholder.nil?
         initial_import
       end
     end

@@ -10,6 +10,9 @@ module MoSQL
         end
       else
         # Try to do seamless upgrades from before-tokumx times
+        # It will raise an exception in this in most cases,
+        # but there isn't a nice way I found to check if column
+        # exists.
         begin
           db.add_column(tablename, :placeholder, 'BYTEA')
         rescue Sequel::DatabaseError => e
@@ -29,17 +32,16 @@ module MoSQL
     def read_state
       row = @table.where(:service => @service).first
       return nil unless row
-      # try to do seamless upgrades - latest operation before or at timestamp if no
-      # placeholder exists
-      puts("Read_state: #{row} #{row.class}")
+      # Again, try to do seamless upgrades - 
+      # If latest operation before or at timestamp if no placeholder 
+      # exists, use timestamp in database to guess what it could be.
       result = {}
       result['time'] = Time.at(row.fetch(:timestamp))
       if row[:placeholder]
         result['placeholder'] = from_blob(row[:placeholder])
-        puts("Existing placeholder: #{result}. #{result['placeholder'].to_a}")
       else
+        log.warn("Trying to seamlessly update from old version!")
         result['placeholder'] = most_recent_operation(result['time'])
-        puts("trying to find most recent placeholder! #{result}")
         save_state(result)
       end
       result
