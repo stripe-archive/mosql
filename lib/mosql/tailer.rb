@@ -34,11 +34,13 @@ module MoSQL
       puts("Read_state: #{row} #{row.class}")
       result = {}
       result['time'] = Time.at(row.fetch(:timestamp))
-      puts(result)
-      if row[:placeholder].nil?
+      if row[:placeholder]
         result['placeholder'] = from_blob(row[:placeholder])
+        puts("Existing placeholder: #{result}. #{result['placeholder'].to_a}")
       else
         result['placeholder'] = most_recent_operation(result['time'])
+        puts("trying to find most recent placeholder! #{result}")
+        save_state(result)
       end
       result
     end

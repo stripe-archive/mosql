@@ -124,7 +124,7 @@ module MoSQL
         end
       end
 
-      tailer.write_state(start_state) unless options[:skip_tail]
+      tailer.save_state(start_state) unless options[:skip_tail]
     end
 
     def did_truncate; @did_truncate ||= {}; end
