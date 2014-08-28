@@ -5,7 +5,7 @@ module MoSQL
     attr_reader :sequel, :mongo
 
     def sql_test_uri
-      ENV['MONGOSQL_TEST_SQL'] || 'postgres:///test'
+      ENV['MONGOSQL_TEST_SQL'] || 'postgres://test'
     end
     def mongo_test_uri
       ENV['MONGOSQL_TEST_MONGO'] || 'mongodb://localhost'

@@ -24,7 +24,7 @@ module MoSQL
     end
 
     def import
-      if options[:reimport] || tailer.read_timestamp.seconds == 0
+      if options[:reimport] || tailer.read_timestamp.nil?
         initial_import
       end
     end
@@ -90,14 +90,14 @@ module MoSQL
       @schema.create_schema(@sql.db, !options[:no_drop_tables])
 
       unless options[:skip_tail]
-        start_ts = @mongo['local']['oplog.rs'].find_one({}, {:sort => [['$natural', -1]]})['ts']
+        start_state = state_for(latest_oplog_entry)
       end
 
       dbnames = []
 
-      if dbname = options[:dbname]
-        log.info "Skipping DB scan and using db: #{dbname}"
-        dbnames = [ dbname ]
+      if options[:dbname]
+        log.info "Skipping DB scan and using db: #{options[:dbname]}"
+        dbnames = [ options[:dbname] ]
       else
         dbnames = @mongo.database_names
       end
@@ -121,8 +121,7 @@ module MoSQL
         end
       end
 
-
-      tailer.write_timestamp(start_ts) unless options[:skip_tail]
+      tailer.write_state(start_state) unless options[:skip_tail]
     end
 
     def did_truncate; @did_truncate ||= {}; end
@@ -164,9 +163,11 @@ module MoSQL
     end
 
     def optail
-      tailer.tail_from(options[:tail_from] ?
-                       BSON::Timestamp.new(options[:tail_from].to_i, 0) :
-                       nil)
+      tail_from = options[:tail_from]
+      if tail_from.is_a? Time
+        tail_from = most_recent_operation(tail_from)
+      end
+      tailer.tail(:from => tail_from)
       until @done
         tailer.stream(1000) do |op|
           handle_op(op)
