@@ -181,7 +181,7 @@ module MoSQL
           v = fetch_and_delete_dotted(obj, source)
           case v
           when BSON::Binary, BSON::ObjectId, Symbol
-            v = v.to_s
+            v = v.to_s.unpack("H*")
           when BSON::DBRef
             v = v.object_id.to_s
           when Hash
