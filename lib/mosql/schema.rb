@@ -165,6 +165,17 @@ module MoSQL
       end
     end
 
+    def transform_primitive(v)
+      case v
+      when BSON::Binary, BSON::ObjectId, Symbol
+        v.to_s
+      when BSON::DBRef
+        v.object_id.to_s
+      else
+        v
+      end
+    end
+
     def transform(ns, obj, schema=nil)
       schema ||= find_ns!(ns)
 
@@ -180,19 +191,17 @@ module MoSQL
         else
           v = fetch_and_delete_dotted(obj, source)
           case v
-          when BSON::Binary, BSON::ObjectId, Symbol
-            v = v.to_s
-          when BSON::DBRef
-            v = v.object_id.to_s
           when Hash
-            v = JSON.dump(v)
+            v = JSON.dump(Hash[v.map { |k,v| [k, transform_primitive(v)] }])
           when Array
-            v.map! {|item| item.is_a?(BSON::DBRef) ? item.object_id.to_s : item}
+            v = v.map { |it| transform_primitive(it) }
             if col[:array_type]
               v = Sequel.pg_array(v, col[:array_type])
             else
               v = JSON.dump(v)
             end
+          else
+            v = transform_primitive(v)
           end
         end
         row << v
