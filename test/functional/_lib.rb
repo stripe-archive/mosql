@@ -58,6 +58,7 @@ EOF
     end
 
     def setup
+      Sequel.default_timezone = :utc
       @sequel = connect_sql
       @mongo  = connect_mongo
       super

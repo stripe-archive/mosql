@@ -315,8 +315,6 @@ db:
 EOF
 
     before do
-      Sequel.default_timezone = :utc
-
       @map = MoSQL::Schema.new(YAML.load(TIMESTAMP_MAP))
       @adapter = MoSQL::SQLAdapter.new(@map, sql_test_uri)
 
