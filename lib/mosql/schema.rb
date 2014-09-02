@@ -165,10 +165,16 @@ module MoSQL
       end
     end
 
-    def transform_primitive(v)
+    def transform_primitive(v, type=nil)
       case v
-      when BSON::Binary, BSON::ObjectId, Symbol
+      when BSON::ObjectId, Symbol
         v.to_s
+      when BSON::Binary
+        if type.downcase == 'uuid'
+          v.to_s.unpack("H*").first
+        else
+          Sequel::SQL::Blob.new(v.to_s)
+        end
       when BSON::DBRef
         v.object_id.to_s
       else
@@ -201,7 +207,7 @@ module MoSQL
               v = JSON.dump(v)
             end
           else
-            v = transform_primitive(v)
+            v = transform_primitive(v, type)
           end
         end
         row << v
@@ -274,7 +280,7 @@ module MoSQL
       end
     end
 
-    def quote_copy(val)
+    def transform_copy(val)
       case val
       when nil
         "\\N"
@@ -286,13 +292,19 @@ module MoSQL
         nil
       when DateTime, Time
         val.strftime("%FT%T.%6N %z")
+      when Sequel::SQL::Blob
+        "\\x" + [val].pack("h*")
       else
-        val.to_s.gsub(/([\\\t\n\r])/, '\\\\\\1')
+        val
       end
     end
 
+    def quote_copy(val)
+      val.to_s.gsub(/([\\\t\n\r])/, '\\\\\\1')
+    end
+
     def transform_to_copy(ns, row, schema=nil)
-      row.map { |c| quote_copy(c) }.compact.join("\t")
+      row.map { |c| quote_copy(transform_copy(c)) }.compact.join("\t")
     end
 
     def table_for_ns(ns)

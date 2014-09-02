@@ -60,13 +60,13 @@ class MoSQL::Test::Functional::TransformTest < MoSQL::Test::Functional
         BSON::Binary.new(["2d931510d99f494a8c6787feb05e1594"].pack("H*"),
           BSON::Binary::SUBTYPE_UUID),
         'UUID',
-        ['2d931510d99f494a8c6787feb05e1594'].pack("H*")
+        "2d931510-d99f-494a-8c67-87feb05e1594"
       ],
       [
         BSON::Binary.new(["deadbeefcafebabe"].pack("H*"),
           BSON::Binary::SUBTYPE_SIMPLE),
         'BYTEA',
-        ['2d931510d99f494a8c6787feb05e1594'].pack("H*")
+        ["deadbeefcafebabe"].pack("H*")
       ]
     ]
 
