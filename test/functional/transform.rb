@@ -56,6 +56,18 @@ class MoSQL::Test::Functional::TransformTest < MoSQL::Test::Functional
         'TEXT',
         ['5405fae77c584947fc000001', '5405fae77c584947fc000002'].to_json
       ],
+      [
+        BSON::Binary.new(["2d931510d99f494a8c6787feb05e1594"].pack("H*"),
+          BSON::Binary::SUBTYPE_UUID),
+        'UUID',
+        ['2d931510d99f494a8c6787feb05e1594'].pack("H*")
+      ],
+      [
+        BSON::Binary.new(["deadbeefcafebabe"].pack("H*"),
+          BSON::Binary::SUBTYPE_SIMPLE),
+        'BYTEA',
+        ['2d931510d99f494a8c6787feb05e1594'].pack("H*")
+      ]
     ]
 
     testcases.each do |mongo, typ, sql|
