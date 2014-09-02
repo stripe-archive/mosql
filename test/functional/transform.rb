@@ -26,6 +26,22 @@ class MoSQL::Test::Functional::TransformTest < MoSQL::Test::Functional
       ],
       [
         [
+          BSON::ObjectId.from_string('5405fae77c584947fc000001'),
+          BSON::ObjectId.from_string('5405fae77c584947fc000002')
+        ],
+        'TEXT ARRAY',
+        ['5405fae77c584947fc000001', '5405fae77c584947fc000002']
+      ],
+      [
+        [
+          BSON::ObjectId.from_string('5405fae77c584947fc000001'),
+          BSON::ObjectId.from_string('5405fae77c584947fc000002')
+        ],
+        'TEXT',
+        ['5405fae77c584947fc000001', '5405fae77c584947fc000002'].to_json,
+      ],
+      [
+        [
           BSON::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000001')),
           BSON::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000002'))
         ],
