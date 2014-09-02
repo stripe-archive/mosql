@@ -280,7 +280,7 @@ module MoSQL
       end
     end
 
-    def transform_copy(val)
+    def quote_copy(val)
       case val
       when nil
         "\\N"
@@ -293,18 +293,14 @@ module MoSQL
       when DateTime, Time
         val.strftime("%FT%T.%6N %z")
       when Sequel::SQL::Blob
-        "\\x" + [val].pack("h*")
+        "\\\\x" + [val].pack("h*")
       else
-        val
+        val.to_s.gsub(/([\\\t\n\r])/, '\\\\\\1')
       end
     end
 
-    def quote_copy(val)
-      val.to_s.gsub(/([\\\t\n\r])/, '\\\\\\1')
-    end
-
     def transform_to_copy(ns, row, schema=nil)
-      row.map { |c| quote_copy(transform_copy(c)) }.compact.join("\t")
+      row.map { |c| quote_copy(c) }.compact.join("\t")
     end
 
     def table_for_ns(ns)
