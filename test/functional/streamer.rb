@@ -95,6 +95,22 @@ EOF
       assert_equal(27, sequel[:sqltable].where(:_id => o['_id'].to_s).select.first[:var])
     end
 
+    it 'applies ops performed via applyOps' do
+      o = { '_id' => BSON::ObjectId.new, 'var' => 17 }
+      @adapter.upsert_ns('mosql_test.collection', o)
+
+      op = { 'ns' => 'mosql_test.collection',
+             'op' => 'u',
+             'o2' => { '_id' => o['_id'] },
+             'o'  => { 'var' => 27 }
+           }
+      @streamer.handle_op({ 'op' => 'c',
+                            'ns' => 'mosql_test.$cmd',
+                            'o' => { 'applyOps' => [op] }
+                          })
+      assert_equal(27, sequel[:sqltable].where(:_id => o['_id'].to_s).select.first[:var])
+    end
+
     it 'handle "d" ops with BSON::ObjectIds' do
       o = { '_id' => BSON::ObjectId.new, 'var' => 17 }
       @adapter.upsert_ns('mosql_test.collection', o)
