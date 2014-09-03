@@ -39,7 +39,7 @@ module MoSQL
         yield
       rescue Sequel::DatabaseError => e
         wrapped = e.wrapped_exception
-        if wrapped.result && options[:unsafe]
+        if @sql.db.adapter_scheme == :postgres && wrapped.result && options[:unsafe]
           log.warn("Ignoring row (#{obj.inspect}): #{e}")
         else
           log.error("Error processing #{obj.inspect} for #{ns}.")

@@ -13,12 +13,14 @@ module MoSQL
             :source => ent.fetch(:source),
             :type   => ent.fetch(:type),
             :name   => (ent.keys - [:source, :type]).first,
+            :opts   => ent.select {|k,v| [:default, :index, :null].include? k }
           }
         elsif ent.is_a?(Hash) && ent.keys.length == 1 && ent.values.first.is_a?(String)
           col = {
             :source => ent.first.first,
             :name   => ent.first.first,
-            :type   => ent.first.last
+            :type   => ent.first.last,
+            :opts   => {}
           }
         else
           raise SchemaError.new("Invalid ordered hash entry #{ent.inspect}")
@@ -86,7 +88,8 @@ module MoSQL
               if col[:source] == '$timestamp'
                 opts[:default] = Sequel.function(:now)
               end
-              column col[:name], col[:type], opts
+              opts.merge!(col[:opts])
+              column col[:name].to_sym, col[:type], opts
 
               if composite_key and composite_key.include?(col[:name])
                 keys << col[:name].to_sym
@@ -264,19 +267,33 @@ module MoSQL
 
     def copy_data(db, ns, objs)
       schema = find_ns!(ns)
-      db.synchronize do |pg|
-        sql = "COPY \"#{schema[:meta][:table]}\" " +
-          "(#{all_columns_for_copy(schema).map {|c| "\"#{c}\""}.join(",")}) FROM STDIN"
-        pg.execute(sql)
-        objs.each do |o|
-          pg.put_copy_data(transform_to_copy(ns, o, schema) + "\n")
+      db.synchronize do |adaptor|
+        # For Postgres we can use the COPY table (*columns) FROM STDIN syntax
+        if db.adapter_scheme == :postgres
+          sql = "COPY \"#{schema[:meta][:table]}\" " +
+            "(#{all_columns_for_copy(schema).map {|c| "\"#{c}\""}.join(",")}) FROM STDIN"
+
+          adaptor.execute(sql)
+
+          objs.each do |o|
+            adaptor.put_copy_data(transform_to_copy(ns, o, schema) + "\n")
+          end
+          adaptor.put_copy_end
+          begin
+            adaptor.get_result.check
+          rescue PGError => e
+            db.send(:raise_error, e)
+          end
+
+        # For all other SQL servers we'll use the standard INSERT INTO table (*columns) VALUES values syntax
+        else
+          sql = "INSERT INTO `#{schema[:meta][:table]}`
+              (#{all_columns_for_copy(schema).map {|c| "\"#{c}\""}.join(",")})
+              VALUES (#{objs.map { |o|  o.join(',') }.join('),(')})"
+
+          db.execute_insert(sql)
         end
-        pg.put_copy_end
-        begin
-          pg.get_result.check
-        rescue PGError => e
-          db.send(:raise_error, e)
-        end
+
       end
     end
 
