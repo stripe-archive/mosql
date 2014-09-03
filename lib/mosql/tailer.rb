@@ -5,7 +5,7 @@ module MoSQL
         db.create_table?(tablename) do
           column :service,     'TEXT'
           column :timestamp,   'INTEGER'
-          column :placeholder, 'BYTEA'
+          column :position,    'BYTEA'
           primary_key [:service]
         end
       else
@@ -14,7 +14,7 @@ module MoSQL
         # but there isn't a nice way I found to check if column
         # exists.
         begin
-          db.add_column(tablename, :placeholder, 'BYTEA')
+          db.add_column(tablename, :position, 'BYTEA')
         rescue Sequel::DatabaseError => e
           raise unless MoSQL::SQLAdapter.duplicate_column_error?(e)
         end
@@ -33,15 +33,15 @@ module MoSQL
       row = @table.where(:service => @service).first
       return nil unless row
       # Again, try to do seamless upgrades - 
-      # If latest operation before or at timestamp if no placeholder 
+      # If latest operation before or at timestamp if no position 
       # exists, use timestamp in database to guess what it could be.
       result = {}
       result['time'] = Time.at(row.fetch(:timestamp))
-      if row[:placeholder]
-        result['placeholder'] = from_blob(row[:placeholder])
+      if row[:position]
+        result['position'] = from_blob(row[:position])
       else
         log.warn("Trying to seamlessly update from old version!")
-        result['placeholder'] = most_recent_operation(result['time'])
+        result['position'] = most_recent_position(result['time'])
         save_state(result)
       end
       result
@@ -51,7 +51,7 @@ module MoSQL
       data = {
         :service => @service,
         :timestamp => state['time'].to_i,
-        :placeholder => to_blob(state['placeholder'])
+        :position => to_blob(state['position'])
       }
 
       unless @did_insert
@@ -67,12 +67,12 @@ module MoSQL
     end
 
     private
-    def to_blob(placeholder)
+    def to_blob(position)
       case database_type
       when :mongo
-        return Sequel::SQL::Blob.new(placeholder.seconds.to_s)
+        return Sequel::SQL::Blob.new(position.seconds.to_s)
       when :toku
-        return Sequel::SQL::Blob.new(placeholder.to_s)
+        return Sequel::SQL::Blob.new(position.to_s)
       end
     end
 

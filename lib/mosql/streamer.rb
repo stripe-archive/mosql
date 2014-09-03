@@ -24,7 +24,7 @@ module MoSQL
     end
 
     def import
-      if options[:reimport] || tailer.read_placeholder.nil?
+      if options[:reimport] || tailer.read_position.nil?
         initial_import
       end
     end
@@ -92,7 +92,7 @@ module MoSQL
       unless options[:skip_tail]
         start_state = {
           'time' => nil,
-          'placeholder' => @tailer.most_recent_operation
+          'position' => @tailer.most_recent_position
         }
       end
 
@@ -168,7 +168,7 @@ module MoSQL
     def optail
       tail_from = options[:tail_from]
       if tail_from.is_a? Time
-        tail_from = most_recent_operation(tail_from)
+        tail_from = tailer.most_recent_position(tail_from)
       end
       tailer.tail(:from => tail_from)
       until @done
