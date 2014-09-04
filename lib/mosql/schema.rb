@@ -70,6 +70,9 @@ module MoSQL
           end
         end
       end
+
+      # Lurky way to force Sequel force all timestamps to use UTC.
+      Sequel.default_timezone = :utc
     end
 
     def create_schema(db, clobber=false)
