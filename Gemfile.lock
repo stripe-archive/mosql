@@ -6,7 +6,7 @@ PATH
       json
       log4r
       mongo
-      mongoriver
+      mongoriver (= 0.4)
       pg
       rake
       sequel
@@ -14,24 +14,24 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    bson (1.9.1)
-    bson_ext (1.9.1)
-      bson (~> 1.9.1)
+    bson (1.10.2)
+    bson_ext (1.10.2)
+      bson (~> 1.10.2)
     json (1.8.1)
     log4r (1.1.10)
     metaclass (0.0.4)
     minitest (3.0.0)
     mocha (1.0.0)
       metaclass (~> 0.0.1)
-    mongo (1.9.1)
-      bson (~> 1.9.1)
-    mongoriver (0.1.0)
+    mongo (1.10.2)
+      bson (= 1.10.2)
+    mongoriver (0.4.0)
       bson_ext
       log4r
       mongo (>= 1.7)
-    pg (0.14.1)
-    rake (10.3.1)
-    sequel (3.44.0)
+    pg (0.17.1)
+    rake (10.3.2)
+    sequel (4.14.0)
 
 PLATFORMS
   ruby
