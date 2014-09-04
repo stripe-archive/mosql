@@ -2,7 +2,7 @@ module MoSQL
   class Tailer < Mongoriver::AbstractPersistentTailer
     def self.create_table(db, tablename)
       if !db.table_exists?(tablename)
-        db.create_table?(tablename) do
+        db.create_table(tablename) do
           column :service,     'TEXT'
           column :timestamp,   'INTEGER'
           column :position,    'BYTEA'
