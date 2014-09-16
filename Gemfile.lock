@@ -1,3 +1,12 @@
+GIT
+  remote: git@github.com:stripe/mongoriver
+  revision: 57034336fd795f931a62c369e309071bcd017417
+  specs:
+    mongoriver (0.4.1)
+      bson_ext
+      log4r
+      mongo (>= 1.7)
+
 PATH
   remote: .
   specs:
@@ -6,7 +15,6 @@ PATH
       json
       log4r
       mongo
-      mongoriver (= 0.4)
       pg
       rake
       sequel
@@ -25,10 +33,6 @@ GEM
       metaclass (~> 0.0.1)
     mongo (1.10.2)
       bson (= 1.10.2)
-    mongoriver (0.4.0)
-      bson_ext
-      log4r
-      mongo (>= 1.7)
     pg (0.17.1)
     rake (10.3.2)
     sequel (4.14.0)
@@ -39,4 +43,5 @@ PLATFORMS
 DEPENDENCIES
   minitest
   mocha
+  mongoriver!
   mosql!
