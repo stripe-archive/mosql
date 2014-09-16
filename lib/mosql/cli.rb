@@ -9,7 +9,7 @@ module MoSQL
 
     BATCH       = 1000
 
-    attr_reader :args, :options, :tailer
+    attr_reader :args, :options, :tailer, :streamer
 
     def self.run(args)
       cli = CLI.new(args)
@@ -27,7 +27,7 @@ module MoSQL
       %w[TERM INT USR2].each do |sig|
         Signal.trap(sig) do
           log.info("Got SIG#{sig}. Preparing to exit...")
-          @streamer.stop
+          @streamer.stop if @streamer
         end
       end
     end
@@ -98,9 +98,13 @@ module MoSQL
         opts.on("--unsafe", "Ignore rows that cause errors on insert") do
           @options[:unsafe] = true
         end
+
+        opts.on("--threaded", "Generate a separate thread for tailing each namespace") do
+          @options[:thread_by_ns] = true
+        end
       end
 
-      optparse.parse!(@args)
+      optparse.parse!(@args.dup)
 
       log = Log4r::Logger.new('Stripe')
       log.outputters = Log4r::StdoutOutputter.new(STDERR)
@@ -112,6 +116,7 @@ module MoSQL
     end
 
     def connect_mongo
+      return unless @mongo.nil?
       @mongo = Mongo::MongoClient.from_uri(options[:mongo])
       config = @mongo['admin'].command(:ismaster => 1)
       if !config['setName'] && !options[:skip_tail]
@@ -131,8 +136,11 @@ module MoSQL
       end
     end
 
-    def load_collections
-      collections = YAML.load_file(@options[:collections])
+    def load_collections(collections=nil)
+      if collections.nil?
+        collections = YAML.load_file(@options[:collections])
+      end
+
       begin
         @schema = MoSQL::Schema.new(collections)
       rescue MoSQL::SchemaError => e
@@ -142,12 +150,56 @@ module MoSQL
       end
     end
 
+    def split_by_namespaces(schema_hash)
+      result = []
+      schema_hash.each_pair do |db, collections|
+        collections.each_pair do |name, schema|
+          ns = db + "." + name
+          result << [ns, {db => {name => schema}}]
+        end
+      end
+      result
+    end
+
+    def fork_pool(n_forks, &blk)
+      if n_forks.is_a? Numeric
+        n_forks = (1..n_forks)
+      end
+      processes = n_forks.map do |i|
+        Process.fork { blk.call(i) }
+      end
+
+      processes.each do |pid|
+        Process.wait(pid)
+        log.debug("Child #{pid} exited")
+      end
+    end
+
     def run
       parse_args
-      load_collections
-      connect_sql
-      connect_mongo
+      collections = YAML.load_file(@options[:collections])
+      splits = split_by_namespaces(collections)
 
+      log.info(options)
+      if options[:thread_by_ns]# && splits.length > 1
+        connect_mongo # to get service name
+
+        fork_pool(splits) do |ns, schema|
+          handler = CLI.new(@args)
+          handler.parse_args
+          handler.options[:service] = @options[:service] + "-" + ns
+          handler.run_for(schema)
+        end
+      else
+        run_for(collections)
+      end
+    end
+
+
+    def run_for(schema_hash=nil)
+      load_collections(schema_hash)
+      connect_mongo
+      connect_sql
       metadata_table = MoSQL::Tailer.create_table(@sql.db, 'mosql_tailers')
 
       @tailer = MoSQL::Tailer.new([@mongo], :existing, metadata_table,
