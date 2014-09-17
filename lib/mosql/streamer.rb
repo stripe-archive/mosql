@@ -2,7 +2,7 @@ module MoSQL
   class Streamer
     include MoSQL::Logging
 
-    BATCH = 10000
+    BATCH = 1000
 
     attr_reader :options, :tailer
 
@@ -16,7 +16,8 @@ module MoSQL
         instance_variable_set(:"@#{parm.to_s}", opts[parm])
       end
 
-      @done    = false
+      @batch_insert_lists ||= Hash.new { |hash, key| hash[key] = []  }
+      @done = false
     end
 
     def stop
@@ -171,16 +172,29 @@ module MoSQL
         tail_from = tailer.most_recent_position(tail_from)
       end
       tailer.tail(:from => tail_from)
-      start = tailer.latest_oplog_entry["ts"]
+      last_batch_insert = Time.now
+
       until @done
+        opcount = 0
         @done = !tailer.stream(1000) do |op|
           handle_op(op)
-          @_last_op = op
+          opcount += 1
+          # @_last_op = op
         end
-        t = Time.at(@_last_op["ts"].seconds).utc
-        behind = start - t
-        log.debug("Behind #{behind} seconds. #{@done}")
+        log.info("Handled #{opcount} ops - without batching")
+        time = Time.now
+        if time - last_batch_insert > 5.0
+          last_batch_insert = time
+          do_batch_inserts
+        end
+        # next if @_last_op.nil?
+        # t = Time.at(@_last_op["ts"].seconds).utc
+        # behind = start - t
+        # log.debug("Behind #{behind} seconds. #{@done}")
       end
+
+      log.info("Finishing, doing last batch inserts.")
+      do_batch_inserts
     end
 
     def sync_object(ns, selector)
@@ -198,6 +212,40 @@ module MoSQL
           query[key] = selector[source]
         end
         @sql.table_for_ns(ns).where(query).delete()
+      end
+    end
+
+    # do a single insert to postgres
+    def insert_single(op, namespace)
+      unsafe_handle_exceptions(namespace, op['o'])  do
+        @sql.upsert_ns(namespace, op['o'])
+      end
+    end
+
+    # Add this op to be batch inserted to namespace
+    # next time a non-update happens
+    def queue_to_batch_insert(op, namespace)
+      @batch_insert_lists[namespace] << @schema.transform(namespace, op['o'])
+      if @batch_insert_lists[namespace].length >= BATCH
+        do_batch_inserts(namespace)
+      end
+    end
+
+    # Do a batch insert for that namespace.
+    # If no namespace is given, all namespaces are done
+    def do_batch_inserts(namespace=nil)
+      if namespace.nil?
+        @batch_insert_lists.keys.each do |namespace|
+          do_batch_inserts(namespace)
+        end
+      else
+        to_batch = @batch_insert_lists[namespace]
+        @batch_insert_lists[namespace] = []
+        return if to_batch.empty?
+
+        table = @sql.table_for_ns(namespace)
+        log.info("Batch inserting #{to_batch.length} items to #{table} from #{namespace}.")
+        bulk_upsert(table, namespace, to_batch)
       end
     end
 
@@ -232,11 +280,12 @@ module MoSQL
         if collection_name == 'system.indexes'
           log.info("Skipping index update: #{op.inspect}")
         else
-          unsafe_handle_exceptions(ns, op['o'])  do
-            @sql.upsert_ns(ns, op['o'])
-          end
+          #queue_to_batch_insert(op, ns)
+          insert_single(op, ns)
         end
       when 'u'
+        do_batch_inserts(ns)
+
         selector = op['o2']
         update   = op['o']
         if update.keys.any? { |k| k.start_with? '$' }
@@ -264,6 +313,8 @@ module MoSQL
           end
         end
       when 'd'
+        do_batch_inserts(ns)
+
         if options[:ignore_delete]
           log.debug("Ignoring delete op on #{ns} as instructed.")
         else

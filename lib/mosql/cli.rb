@@ -107,7 +107,7 @@ module MoSQL
       optparse.parse!(@args.dup)
 
       log = Log4r::Logger.new('Stripe')
-      log.outputters = Log4r::StdoutOutputter.new(STDERR)
+      # log.outputters = Log4r::StdoutOutputter.new(STDERR)
       if options[:verbose] >= 1
         log.level = Log4r::DEBUG
       else
@@ -181,7 +181,7 @@ module MoSQL
       splits = split_by_namespaces(collections)
 
       log.info(options)
-      if options[:thread_by_ns]# && splits.length > 1
+      if false#options[:thread_by_ns]# && splits.length > 1
         connect_mongo # to get service name
 
         fork_pool(splits) do |ns, schema|
@@ -211,7 +211,7 @@ module MoSQL
                                :sql     => @sql,
                                :schema  => @schema)
 
-      # @streamer.import
+      @streamer.import
 
       unless options[:skip_tail]
         @streamer.optail
