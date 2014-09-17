@@ -2,7 +2,7 @@ module MoSQL
   class Streamer
     include MoSQL::Logging
 
-    BATCH = 1000
+    BATCH = 10000
 
     attr_reader :options, :tailer
 
@@ -171,10 +171,15 @@ module MoSQL
         tail_from = tailer.most_recent_position(tail_from)
       end
       tailer.tail(:from => tail_from)
+      start = tailer.latest_oplog_entry["ts"]
       until @done
-        tailer.stream(1000) do |op|
+        @done = !tailer.stream(1000) do |op|
           handle_op(op)
+          @_last_op = op
         end
+        t = Time.at(@_last_op["ts"].seconds).utc
+        behind = start - t
+        log.debug("Behind #{behind} seconds. #{@done}")
       end
     end
 

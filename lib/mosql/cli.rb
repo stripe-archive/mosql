@@ -211,7 +211,7 @@ module MoSQL
                                :sql     => @sql,
                                :schema  => @schema)
 
-      @streamer.import
+      # @streamer.import
 
       unless options[:skip_tail]
         @streamer.optail
