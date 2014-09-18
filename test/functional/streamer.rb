@@ -365,6 +365,7 @@ EOF
           "ns" => "db.has_timestamp",
           "o"  => mongo['db']['has_timestamp'].find_one({_id: id})
         })
+      @streamer.do_batch_inserts
       got = @sequel[:has_timestamp].where(:_id => id.to_s).select.first[:ts]
       assert_equal(ts.to_i, got.to_i)
       assert_equal(ts.tv_usec, got.tv_usec)

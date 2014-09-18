@@ -114,6 +114,7 @@ class MoSQL::Test::Functional::TransformTest < MoSQL::Test::Functional
           "ns" => "test.test_transform",
           "o"  => collection.find_one(_id: id)
         })
+      streamer.do_batch_inserts
 
       got = @sequel[:test_transform].where(_id: id).to_a
       assert_equal(sql, got.first[:value], "was able to transform a #{typ} field while streaming")
