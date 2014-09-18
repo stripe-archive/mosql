@@ -197,6 +197,13 @@ module MoSQL
       do_batch_inserts
     end
 
+    # Handle $set, $inc and other operators in updates. Done by querying
+    # mongo and setting the value to whatever mongo holds at the time.
+    # Note that this somewhat messes with consistency as postgres will be
+    # "ahead" everything else if tailer is behind.
+    #
+    # If no such object is found, try to delete according to primary keys that
+    # must be present in selector (and not behind $set and etc).
     def sync_object(ns, selector)
       obj = collection_for_ns(ns).find_one(selector)
       if obj
