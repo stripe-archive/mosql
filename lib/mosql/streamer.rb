@@ -53,7 +53,7 @@ module MoSQL
       begin
         @schema.copy_data(table.db, ns, items)
       rescue Sequel::DatabaseError => e
-        log.debug("Bulk insert error (#{e}), attempting invidual upserts...")
+        log.info("Bulk insert error (#{e}), attempting invidual upserts...")
         cols = @schema.all_columns(@schema.find_ns(ns))
         items.each do |it|
           h = {}
@@ -181,9 +181,9 @@ module MoSQL
           opcount += 1
           # @_last_op = op
         end
-        log.info("Handled #{opcount} ops - without batching")
+        log.error("Handled #{opcount} ops - without batching")
         time = Time.now
-        if time - last_batch_insert > 5.0
+        if time - last_batch_insert > 10.0
           last_batch_insert = time
           do_batch_inserts
         end
@@ -235,8 +235,8 @@ module MoSQL
     # If no namespace is given, all namespaces are done
     def do_batch_inserts(namespace=nil)
       if namespace.nil?
-        @batch_insert_lists.keys.each do |namespace|
-          do_batch_inserts(namespace)
+        @batch_insert_lists.keys.each do |ns|
+          do_batch_inserts(ns)
         end
       else
         to_batch = @batch_insert_lists[namespace]
@@ -244,7 +244,7 @@ module MoSQL
         return if to_batch.empty?
 
         table = @sql.table_for_ns(namespace)
-        log.info("Batch inserting #{to_batch.length} items to #{table} from #{namespace}.")
+        # log.info("Batch inserting #{to_batch.length} items to #{table} from #{namespace}.")
         bulk_upsert(table, namespace, to_batch)
       end
     end
@@ -280,8 +280,8 @@ module MoSQL
         if collection_name == 'system.indexes'
           log.info("Skipping index update: #{op.inspect}")
         else
-          #queue_to_batch_insert(op, ns)
-          insert_single(op, ns)
+          queue_to_batch_insert(op, ns)
+          #insert_single(op, ns)
         end
       when 'u'
         do_batch_inserts(ns)
