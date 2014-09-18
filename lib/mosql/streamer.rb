@@ -2,7 +2,9 @@ module MoSQL
   class Streamer
     include MoSQL::Logging
 
-    BATCH = 1000
+    BATCH_SIZE = 1000
+    # How long to wait before saving unsaved inserts to postgres
+    INSERT_BATCH_TIMELIMIT = 5.0
 
     attr_reader :options, :tailer
 
@@ -16,7 +18,9 @@ module MoSQL
         instance_variable_set(:"@#{parm.to_s}", opts[parm])
       end
 
-      @done    = false
+      # Hash to from namespace -> inserts that need to be made
+      @batch_insert_lists = Hash.new { |hash, key| hash[key] = [] }
+      @done = false
     end
 
     def stop
@@ -141,13 +145,13 @@ module MoSQL
 
       start    = Time.now
       sql_time = 0
-      collection.find(filter, :batch_size => BATCH) do |cursor|
+      collection.find(filter, :batch_size => BATCH_SIZE) do |cursor|
         with_retries do
           cursor.each do |obj|
             batch << @schema.transform(ns, obj)
             count += 1
 
-            if batch.length >= BATCH
+            if batch.length >= BATCH_SIZE
               sql_time += track_time do
                 bulk_upsert(table, ns, batch)
               end
@@ -170,14 +174,31 @@ module MoSQL
       if tail_from.is_a? Time
         tail_from = tailer.most_recent_position(tail_from)
       end
+
+      last_batch_insert = Time.now
       tailer.tail(:from => tail_from)
       until @done
         tailer.stream(1000) do |op|
           handle_op(op)
         end
+        time = Time.now
+        if time - last_batch_insert >= INSERT_BATCH_TIMELIMIT
+          last_batch_insert = time
+          do_batch_inserts
+        end
       end
+
+      log.info("Finishing, doing last batch inserts.")
+      do_batch_inserts
     end
 
+    # Handle $set, $inc and other operators in updates. Done by querying
+    # mongo and setting the value to whatever mongo holds at the time.
+    # Note that this somewhat messes with consistency as postgres will be
+    # "ahead" everything else if tailer is behind.
+    #
+    # If no such object is found, try to delete according to primary keys that
+    # must be present in selector (and not behind $set and etc).
     def sync_object(ns, selector)
       obj = collection_for_ns(ns).find_one(selector)
       if obj
@@ -193,6 +214,33 @@ module MoSQL
           query[key] = selector[source]
         end
         @sql.table_for_ns(ns).where(query).delete()
+      end
+    end
+
+    # Add this op to be batch inserted to namespace
+    # next time a non-insert happens
+    def queue_to_batch_insert(op, namespace)
+      @batch_insert_lists[namespace] << @schema.transform(namespace, op['o'])
+      if @batch_insert_lists[namespace].length >= BATCH_SIZE
+        do_batch_inserts(namespace)
+      end
+    end
+
+    # Do a batch insert for that namespace, putting data to postgres.
+    # If no namespace is given, all namespaces are done
+    def do_batch_inserts(namespace=nil)
+      if namespace.nil?
+        @batch_insert_lists.keys.each do |ns|
+          do_batch_inserts(ns)
+        end
+      else
+        to_batch = @batch_insert_lists[namespace]
+        @batch_insert_lists[namespace] = []
+        return if to_batch.empty?
+
+        table = @sql.table_for_ns(namespace)
+        log.debug("Batch inserting #{to_batch.length} items to #{table} from #{namespace}.")
+        bulk_upsert(table, namespace, to_batch)
       end
     end
 
@@ -227,9 +275,7 @@ module MoSQL
         if collection_name == 'system.indexes'
           log.info("Skipping index update: #{op.inspect}")
         else
-          unsafe_handle_exceptions(ns, op['o'])  do
-            @sql.upsert_ns(ns, op['o'])
-          end
+          queue_to_batch_insert(op, ns)
         end
       when 'u'
         selector = op['o2']
@@ -238,6 +284,7 @@ module MoSQL
           log.debug("resync #{ns}: #{selector['_id']} (update was: #{update.inspect})")
           sync_object(ns, selector)
         else
+          do_batch_inserts(ns)
 
           # The update operation replaces the existing object, but
           # preserves its _id field, so grab the _id off of the
@@ -259,6 +306,8 @@ module MoSQL
           end
         end
       when 'd'
+        do_batch_inserts(ns)
+
         if options[:ignore_delete]
           log.debug("Ignoring delete op on #{ns} as instructed.")
         else
