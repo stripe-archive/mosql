@@ -202,8 +202,12 @@ module MoSQL
     def transform(ns, obj, schema=nil)
       schema ||= find_ns!(ns)
 
-      obj = obj.dup
-      original = BSON.deserialize(BSON.serialize(obj))
+      original = obj
+
+      # Do a deep clone, because we're potentially going to be
+      # mutating embedded objects.
+      obj = BSON.deserialize(BSON.serialize(obj))
+
       row = []
       schema[:columns].each do |col|
 
