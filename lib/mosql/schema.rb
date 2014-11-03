@@ -159,10 +159,24 @@ module MoSQL
       val
     end
 
-    def fetch_special_source(obj, source)
+    def fetch_exists(obj, dotted)
+      pieces = dotted.split(".")
+      while pieces.length > 1
+        key = pieces.shift
+        obj = obj[key]
+        return false unless obj.is_a?(Hash)
+      end
+      obj.has_key?(pieces.first)
+    end
+
+    def fetch_special_source(obj, source, original)
       case source
       when "$timestamp"
         Sequel.function(:now)
+      when /^\$exists (.+)/
+        # We need to look in the cloned original object, not in the version that
+        # has had some fields deleted.
+        fetch_exists(original, $1)
       else
         raise SchemaError.new("Unknown source: #{source}")
       end
@@ -189,6 +203,7 @@ module MoSQL
       schema ||= find_ns!(ns)
 
       obj = obj.dup
+      original = BSON.deserialize(BSON.serialize(obj))
       row = []
       schema[:columns].each do |col|
 
@@ -196,7 +211,7 @@ module MoSQL
         type = col[:type]
 
         if source.start_with?("$")
-          v = fetch_special_source(obj, source)
+          v = fetch_special_source(obj, source, original)
         else
           v = fetch_and_delete_dotted(obj, source)
           case v
