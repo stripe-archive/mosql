@@ -343,6 +343,26 @@ db:
       - mosql_created:
         :source: $timestamp
         :type: timestamp
+  existence:
+    :meta:
+      :table: b_table
+    :columns:
+      - _id: TEXT
+      - has_foo:
+        :source: $exists foo
+        :type: BOOLEAN
+      - has_foo_bar:
+        :source: $exists foo.bar
+        :type: BOOLEAN
+  exists_and_value:
+    :meta:
+      :table: c_table
+    :columns:
+      - _id: TEXT
+      - foo: TEXT
+      - has_foo:
+        :source: $exists foo
+        :type: BOOLEAN
   invalid:
     :meta:
       :table: invalid
@@ -360,6 +380,28 @@ EOF
     it 'translates $timestamp' do
       r = @othermap.transform('db.collection', { '_id' => 'a' })
       assert_equal(['a', Sequel.function(:now)], r)
+    end
+
+    it 'translates $exists' do
+      r = @othermap.transform('db.existence', { '_id' => 'a' })
+      assert_equal(['a', false, false], r)
+      r = @othermap.transform('db.existence', { '_id' => 'a', 'foo' => nil })
+      assert_equal(['a', true, false], r)
+      r = @othermap.transform('db.existence', { '_id' => 'a', 'foo' => {} })
+      assert_equal(['a', true, false], r)
+      r = @othermap.transform('db.existence', { '_id' => 'a', 'foo' => {'bar' => nil} })
+      assert_equal(['a', true, true], r)
+      r = @othermap.transform('db.existence', { '_id' => 'a', 'foo' => {'bar' => 42} })
+      assert_equal(['a', true, true], r)
+    end
+
+    it 'can get $exists and value' do
+      r = @othermap.transform('db.exists_and_value', { '_id' => 'a' })
+      assert_equal(['a', nil, false], r)
+      r = @othermap.transform('db.exists_and_value', { '_id' => 'a', 'foo' => nil })
+      assert_equal(['a', nil, true], r)
+      r = @othermap.transform('db.exists_and_value', { '_id' => 'a', 'foo' => 'xxx' })
+      assert_equal(['a', 'xxx', true], r)
     end
 
     it 'rejects unknown specials' do

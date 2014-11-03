@@ -262,7 +262,7 @@ EOF
             @streamer.handle_op({ 'ns' => 'mosql_test.collection',
                                   'op' => 'u',
                                   'o2' => { '_id' => 'a' },
-                                  'o'  => { 'var' => 1 << 70 },
+                                  'o'  => { 'var' => 1 << 62 },
                                 })
           end
         end
@@ -272,7 +272,7 @@ EOF
           @streamer.handle_op({ 'ns' => 'mosql_test.collection',
                                 'op' => 'u',
                                 'o2' => { '_id' => 'a' },
-                                'o'  => { 'var' => 1 << 70 },
+                                'o'  => { 'var' => 1 << 62 },
                               })
           assert_equal(0, sequel[:sqltable].where(:_id => 'a').count)
         end
