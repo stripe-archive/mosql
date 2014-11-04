@@ -212,7 +212,24 @@ e.g.
 mosql --mongo mongdb://$USER@$PASSWORD:$HOST/admin
 ```
 
-I have not yet tested using MoSQL with 2.4's "roles" support. Drop me
+In order to use MongoDB 2.4's "roles" support (which is different from that in
+2.6), you need to create the user in the admin database, give it explicit read
+access to the databases you want to copy *and* to the `local` database, and
+specify authSource in the URL.  eg, connect to `mydb/admin` with the mongo shell
+and run:
+
+```
+> db.addUser({user: "replicator", pwd: "PASSWORD", roles: [], otherDBRoles: {local: ["read"], sourceDb: ["read"]}})
+```
+
+(Note that `roles: []` ensures that this user has no special access to the
+`admin` database.)  Now specify:
+
+```
+mosql --mongo mongdb://$USER@$PASSWORD:$HOST/sourceDb?authSource=admin
+```
+
+I have not yet tested using MoSQL with 2.6's rewritten "roles" support. Drop me
 a note if you figure out anything I should know.
 
 ## Sharded clusters
