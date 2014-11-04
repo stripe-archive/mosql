@@ -98,6 +98,11 @@ module MoSQL
         opts.on("--unsafe", "Ignore rows that cause errors on insert") do
           @options[:unsafe] = true
         end
+
+        # eg, --oplog-filter '{"ns": {"$regex": "^somedb[0-9]*\\.collection$"}}'
+        opts.on("--oplog-filter [filter]", "An additional JSON filter for the oplog query") do |filter|
+          @options[:oplog_filter] = JSON.parse(filter)
+        end
       end
 
       optparse.parse!(@args)

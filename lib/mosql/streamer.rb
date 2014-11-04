@@ -170,7 +170,7 @@ module MoSQL
       if tail_from.is_a? Time
         tail_from = tailer.most_recent_position(tail_from)
       end
-      tailer.tail(:from => tail_from)
+      tailer.tail(:from => tail_from, :filter => options[:oplog_filter])
       until @done
         tailer.stream(1000) do |op|
           handle_op(op)
