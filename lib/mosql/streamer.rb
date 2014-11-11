@@ -185,14 +185,7 @@ module MoSQL
           @sql.upsert_ns(ns, obj)
         end
       else
-        primary_sql_keys = @schema.primary_sql_key_for_ns(ns)
-        schema = @schema.find_ns!(ns)
-        query = {}
-        primary_sql_keys.each do |key|
-          source =  schema[:columns].find {|c| c[:name] == key }[:source]
-          query[key] = selector[source]
-        end
-        @sql.table_for_ns(ns).where(query).delete()
+        @sql.delete_ns(ns, selector)
       end
     end
 
