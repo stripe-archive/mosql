@@ -101,10 +101,13 @@ module MoSQL
             primary_key keys
             if meta[:extra_props]
               type =
-                if meta[:extra_props] == "JSON"
-                  "JSON"
+                case meta[:extra_props]
+                when 'JSON'
+                  'JSON'
+                when 'JSONB'
+                  'JSONB'
                 else
-                  "TEXT"
+                  'TEXT'
                 end
               column '_extra_props', type
             end

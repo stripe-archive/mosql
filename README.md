@@ -176,7 +176,8 @@ If it encounters a MongoDB object with fields not listed in the
 collection map, it will discard the extra fields, unless
 `:extra_props` is set in the `:meta` hash. If it is, it will collect
 any missing fields, JSON-encode them in a hash, and store the
-resulting text in `_extra_props` in SQL.
+resulting text in `_extra_props` in SQL. You can set `:extra_props`
+to use `JSON`, `JSONB`, or `TEXT`.
 
 As of PostgreSQL 9.3, you can declare columns as type "JSON" and use
 the [native JSON support][pg-json] to inspect inside of JSON-encoded
