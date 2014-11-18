@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mosql (0.4.1)
+    mosql (0.4.2)
       bson (~> 1.10)
       bson_ext
       json
