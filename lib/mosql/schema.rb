@@ -197,8 +197,10 @@ module MoSQL
         end
       when BSON::DBRef
         v.object_id.to_s.force_encoding("UTF-8")
-      else
+      when String
         v.force_encoding("UTF-8")
+      else
+        v
       end
     end
 
