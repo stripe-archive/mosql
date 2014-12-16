@@ -112,10 +112,11 @@ EOF
     assert_equal(o['_id'].to_s, table.select.first[:_id])
   end
 
-  it 'Can transform non utf-8 strings' do
-    o = {'_id' => "a", 'var' =>'São Paulo'}
-    @map.copy_data(@sequel, 'db.non_utf-8', [ @map.transform('db.non_utf-8', o)] )
-    assert_equal(o['var'].to_s, table4.select.first[:var])
+  it 'Can transform non utf-8 strings to utfs-8' do
+    var = 'S�o Paulo'.force_encoding('ISO-8859-1')
+    o = {'_id' => "a", 'var' =>var}
+    v = @map.transform_primitive(o['var'])
+    assert_equal("UTF-8",v.encoding.to_s)
   end
 
   describe 'special fields' do
