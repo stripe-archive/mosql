@@ -241,7 +241,7 @@ module MoSQL
           keys = {}
           primary_sql_keys.each do |key|
             source =  schema[:columns].find {|c| c[:name] == key }[:source]
-            keys[key] = selector[source]
+            keys[source] = selector[source]
           end
 
           log.debug("upsert #{ns}: #{keys}")

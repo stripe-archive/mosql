@@ -95,6 +95,18 @@ EOF
       assert_equal(27, sequel[:sqltable].where(:_id => o['_id'].to_s).select.first[:var])
     end
 
+    it 'handle "u" ops without _id and a renamed _id mapping' do
+      o = { '_id' => BSON::ObjectId.new, 'var' => 17 }
+      @adapter.upsert_ns('mosql_test.renameid', o)
+
+      @streamer.handle_op({ 'ns' => 'mosql_test.renameid',
+                            'op' => 'u',
+                            'o2' => { '_id' => o['_id'] },
+                            'o'  => { 'goats' => 27 }
+                          })
+      assert_equal(27, sequel[:sqltable2].where(:id => o['_id'].to_s).select.first[:goats])
+    end
+
     it 'applies ops performed via applyOps' do
       o = { '_id' => BSON::ObjectId.new, 'var' => 17 }
       @adapter.upsert_ns('mosql_test.collection', o)
