@@ -177,7 +177,7 @@ module MoSQL
       obj.has_key?(pieces.first)
     end
 
-    def fetch_special_source(obj, source, original)
+    def fetch_special_source(ns, obj, source, original)
       case source
       when "$timestamp"
         Sequel.function(:now)
@@ -229,7 +229,7 @@ module MoSQL
         type = col[:type]
 
         if source.start_with?("$")
-          v = fetch_special_source(obj, source, original)
+          v = fetch_special_source(ns, obj, source, original)
         else
           v = fetch_and_delete_dotted(obj, source)
           case v
