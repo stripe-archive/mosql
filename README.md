@@ -163,7 +163,7 @@ cause `mosql` to drop tables, create them anew, and do another import.
 Normaly, MoSQL will scan through a list of the databases on the mongo
 server you connect to. You avoid this behavior by specifiying a specific
 mongo db to connect to with the `--only-db [dbname]` option. This is
-useful for hosted services which do not let you list all databases (via 
+useful for hosted services which do not let you list all databases (via
 the `listDatabases` command).
 
 ## Schema mismatches and _extra_props
@@ -210,7 +210,7 @@ authentication, you must:
 e.g.
 
 ```
-mosql --mongo mongdb://$USER@$PASSWORD:$HOST/admin
+mosql --mongo mongodb://$USER:$PASSWORD@$HOST/admin
 ```
 
 In order to use MongoDB 2.4's "roles" support (which is different from that in
@@ -227,7 +227,7 @@ and run:
 `admin` database.)  Now specify:
 
 ```
-mosql --mongo mongdb://$USER@$PASSWORD:$HOST/sourceDb?authSource=admin
+mosql --mongo mongodb://$USER:$PASSWORD@$HOST/sourceDb?authSource=admin
 ```
 
 I have not yet tested using MoSQL with 2.6's rewritten "roles" support. Drop me
