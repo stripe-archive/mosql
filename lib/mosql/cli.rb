@@ -87,6 +87,10 @@ module MoSQL
           @options[:skip_tail] = true
         end
 
+        opts.on("--skip-import", "Don't import data before tailing oplog") do
+          @options[:skip_import] = true
+        end
+
         opts.on("--reimport", "Force a data re-import") do
           @options[:reimport] = true
         end
@@ -164,7 +168,9 @@ module MoSQL
                                :sql     => @sql,
                                :schema  => @schema)
 
-      @streamer.import
+      unless options[:skip_import]
+        @streamer.import
+      end
 
       unless options[:skip_tail]
         @streamer.optail
