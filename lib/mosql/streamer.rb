@@ -142,20 +142,18 @@ module MoSQL
       start    = Time.now
       sql_time = 0
       collection.find(filter, :timeout => false, :batch_size => BATCH) do |cursor|
-        with_retries do
-          cursor.each do |obj|
-            batch << @schema.transform(ns, obj)
-            count += 1
+        cursor.each do |obj|
+          batch << @schema.transform(ns, obj)
+          count += 1
 
-            if batch.length >= BATCH
-              sql_time += track_time do
-                bulk_upsert(table, ns, batch)
-              end
-              elapsed = Time.now - start
-              log.info("Imported #{count} rows (#{elapsed}s, #{sql_time}s SQL)...")
-              batch.clear
-              exit(0) if @done
+          if batch.length >= BATCH
+            sql_time += track_time do
+              bulk_upsert(table, ns, batch)
             end
+            elapsed = Time.now - start
+            log.info("Imported #{count} rows (#{elapsed}s, #{sql_time}s SQL)...")
+            batch.clear
+            exit(0) if @done
           end
         end
       end
