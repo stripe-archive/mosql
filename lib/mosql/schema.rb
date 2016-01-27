@@ -12,7 +12,7 @@ module MoSQL
           col = {
             :source => ent.fetch(:source),
             :type   => ent.fetch(:type),
-            :name   => (ent.keys - [:source, :type]).first,
+            :name   => (ent.keys - [:source, :type]).first
           }
         elsif ent.is_a?(Hash) && ent.keys.length == 1 && ent.values.first.is_a?(String)
           col = {
@@ -217,8 +217,11 @@ module MoSQL
         source = col[:source]
         type = col[:type]
 
-        if source.start_with?("$")
+        if source == '__ignore__'
+          # Just ignore the field
+        elsif source.start_with?("$")
           v = fetch_special_source(obj, source, original)
+          row << v
         else
           v = fetch_and_delete_dotted(obj, source)
           case v
@@ -234,8 +237,8 @@ module MoSQL
           else
             v = transform_primitive(v, type)
           end
+          row << v
         end
-        row << v
       end
 
       if schema[:meta][:extra_props]
@@ -269,7 +272,7 @@ module MoSQL
     end
 
     def copy_column?(col)
-      col[:source] != '$timestamp'
+      col[:source] != '$timestamp' && col[:source] != '__ignore__'
     end
 
     def all_columns(schema, copy=false)
