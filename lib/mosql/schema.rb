@@ -190,7 +190,7 @@ module MoSQL
       when BSON::ObjectId, Symbol
         v.to_s
       when BSON::Binary
-        if type.downcase == 'uuid'
+        if type && type.downcase == 'uuid'
           v.to_s.unpack("H*").first
         else
           Sequel::SQL::Blob.new(v.to_s)
