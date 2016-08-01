@@ -323,7 +323,7 @@ module MoSQL
       when Sequel::SQL::Blob
         "\\\\x" + [val].pack("h*")
       else
-        val.to_s.gsub(/([\\\t\n\r])/, '\\\\\\1')
+        val.to_s.encode!('UTF-8', :undef => :replace, :invalid => :replace).gsub(/([\\\t\n\r])/, '\\\\\\1')
       end
     end
 
