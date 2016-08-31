@@ -145,6 +145,14 @@ module MoSQL
 
     def fetch_and_delete_dotted(obj, dotted)
       pieces = dotted.split(".")
+      selector = pieces.last
+      if selector =~ /\[/
+        number = Integer(selector.match(/\[(.+?)\]/)[1])
+        pieces = pieces[0..-2] + [selector.gsub!("[#{number}]", "")]
+      else
+        number = nil
+      end 
+
       breadcrumbs = []
       while pieces.length > 1
         key = pieces.shift
@@ -153,7 +161,12 @@ module MoSQL
         return nil unless obj.is_a?(Hash)
       end
 
-      val = obj.delete(pieces.first)
+      if number
+        ary = obj.delete(selector) 
+        val = ary && ary[number]
+      else
+        val = obj.delete(selector)
+      end
 
       breadcrumbs.reverse.each do |obj, key|
         obj.delete(key) if obj[key].empty?
