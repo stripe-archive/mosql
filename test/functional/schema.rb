@@ -29,6 +29,12 @@ db:
       - var_b:
         :source: vars.b
         :type: TEXT
+  non_utf-8:
+    :meta:
+      :table: sqltable4
+    :columns:
+      - _id: TEXT
+      - var: TEXT
 EOF
 
   before do
@@ -37,12 +43,14 @@ EOF
     @sequel.drop_table?(:sqltable)
     @sequel.drop_table?(:sqltable2)
     @sequel.drop_table?(:sqltable3)
+    @sequel.drop_table?(:sqltable4)
     @map.create_schema(@sequel)
   end
 
   def table; @sequel[:sqltable]; end
   def table2; @sequel[:sqltable2]; end
   def table3; @sequel[:sqltable3]; end
+  def table4; @sequel[:sqltable4]; end
 
   it 'Creates the tables with the right columns' do
     assert_equal(Set.new([:_id, :var, :arry]),
@@ -102,6 +110,13 @@ EOF
     row = @map.transform('db.collection', o)
     table.insert(row)
     assert_equal(o['_id'].to_s, table.select.first[:_id])
+  end
+
+  it 'Can transform non utf-8 strings to utfs-8' do
+    var = 'S�o Paulo'.force_encoding('ISO-8859-1')
+    o = {'_id' => "a", 'var' =>var}
+    v = @map.transform_primitive(o['var'])
+    assert_equal("UTF-8",v.encoding.to_s)
   end
 
   describe 'special fields' do

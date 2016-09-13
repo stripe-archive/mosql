@@ -188,15 +188,17 @@ module MoSQL
     def transform_primitive(v, type=nil)
       case v
       when BSON::ObjectId, Symbol
-        v.to_s
+        v.to_s.force_encoding("UTF-8")
       when BSON::Binary
         if type.downcase == 'uuid'
-          v.to_s.unpack("H*").first
+          v.to_s.unpack("H*").first.force_encoding("UTF-8")
         else
-          Sequel::SQL::Blob.new(v.to_s)
+          Sequel::SQL::Blob.new(v.to_s.force_encoding("UTF-8"))
         end
       when BSON::DBRef
-        v.object_id.to_s
+        v.object_id.to_s.force_encoding("UTF-8")
+      when String
+        v.force_encoding("UTF-8")
       else
         v
       end
@@ -216,7 +218,6 @@ module MoSQL
 
         source = col[:source]
         type = col[:type]
-
         if source.start_with?("$")
           v = fetch_special_source(obj, source, original)
         else
