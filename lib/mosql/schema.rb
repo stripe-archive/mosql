@@ -82,7 +82,9 @@ module MoSQL
           meta = collection[:meta]
           composite_key = meta[:composite_key]
           keys = []
-          log.info("Creating table '#{meta[:table]}'...")
+          if clobber
+            log.info("Creating table '#{meta[:table]}'...")
+          end
           db.send(clobber ? :create_table! : :create_table?, meta[:table]) do
             collection[:columns].each do |col|
               opts = {}
