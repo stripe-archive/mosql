@@ -109,8 +109,8 @@ module MoSQL
         end
 
         #Configurable timeout field to override the default of 20 seconds
-        opts.on("--socket-timeout", "Set the timeout for reads from MongoDB") do |timeout|
-          @options[:op_timeout] = timeout
+        opts.on("--socket-timeout [timeout]", "Set the timeout for reads from MongoDB") do |timeout|
+          @options[:op_timeout] = timeout.to_i
         end
       end
 
