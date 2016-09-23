@@ -73,7 +73,7 @@ module MoSQL
           raise if e.kind_of?(Mongo::OperationFailure) && [11000, 11001].include?(e.error_code)
           # Cursor timeout
           raise if e.kind_of?(Mongo::OperationFailure) && e.message =~ /^Query response returned CURSOR_NOT_FOUND/
-          delay = 0.5 * (1.5 ** try)
+          delay = 0.5 * (2 ** try)
           log.warn("Mongo exception: #{e}, sleeping #{delay}s...")
           sleep(delay)
         end
