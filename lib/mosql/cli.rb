@@ -63,6 +63,18 @@ module MoSQL
           @options[:mongo] = uri
         end
 
+        opts.on("--mongo_sslcert [path]", "Path to the SSL public certificate to use w/ mongo connection (enables SSL)") do |uri|
+          @options[:mongo_sslcert] = uri
+        end
+
+        opts.on("--mongo_sslkey [path]", "Path to the SSL private key to use w/ mongo connection (enables SSL)") do |uri|
+          @options[:mongo_sslkey] = uri
+        end
+
+        opts.on("--mongo_sslca [path]", "Path to the SSL public CA certificate to use w/ mongo connection (enables SSL)") do |uri|
+          @options[:mongo_ca] = uri
+        end
+
         opts.on("--schema [schema]", "PostgreSQL 'schema' to namespace tables") do |schema|
           @options[:schema] = schema
         end
@@ -121,7 +133,16 @@ module MoSQL
     end
 
     def connect_mongo
-      @mongo = Mongo::MongoClient.from_uri(options[:mongo])
+      opts = {}
+      if options.key?(:mongo_sslcert) && options.key?(:mongo_sslkey)
+      	opts[:ssl] = true
+				opts[:ssl_cert] = options[:mongo_sslcert]
+				opts[:ssl_key] = options[:mongo_sslkey]
+      end
+			if options.key?(:mongo_sslca)
+				opts[:ssl_ca_cert] = options[:mongo_sslca]
+			end
+      @mongo = Mongo::MongoClient.from_uri(options[:mongo], opts)
       config = @mongo['admin'].command(:ismaster => 1)
       if !config['setName'] && !options[:skip_tail]
         log.warn("`#{options[:mongo]}' is not a replset.")
