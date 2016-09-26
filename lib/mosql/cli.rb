@@ -107,6 +107,11 @@ module MoSQL
         opts.on("--oplog-filter [filter]", "An additional JSON filter for the oplog query") do |filter|
           @options[:oplog_filter] = JSON.parse(filter)
         end
+
+        #Configurable timeout field to override the default of 20 seconds
+        opts.on("--socket-timeout [timeout]", "Set the timeout for reads from MongoDB") do |timeout|
+          @options[:op_timeout] = timeout.to_i
+        end
       end
 
       optparse.parse!(@args)
@@ -121,7 +126,7 @@ module MoSQL
     end
 
     def connect_mongo
-      @mongo = Mongo::MongoClient.from_uri(options[:mongo])
+      @mongo = Mongo::MongoClient.from_uri(options[:mongo], op_timeout: options[:op_timeout])
       config = @mongo['admin'].command(:ismaster => 1)
       if !config['setName'] && !options[:skip_tail]
         log.warn("`#{options[:mongo]}' is not a replset.")
