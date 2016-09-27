@@ -36,7 +36,8 @@ module MoSQL
       seen = Set.new
       spec[:columns].each do |col|
         if seen.include?(col[:source])
-          raise SchemaError.new("Duplicate source #{col[:source]} in column definition #{col[:name]} for #{ns}.")
+          # raise SchemaError.new("Duplicate source #{col[:source]} in column definition #{col[:name]} for #{ns}.")
+          log.warn("Duplicate source #{col[:source]} in column definition #{col[:name]} for #{ns}.")
         end
         seen.add(col[:source])
       end
@@ -212,15 +213,15 @@ module MoSQL
       obj = BSON.deserialize(BSON.serialize(obj))
 
       row = []
+      row_source = {}
       schema[:columns].each do |col|
-
         source = col[:source]
         type = col[:type]
 
         if source.start_with?("$")
           v = fetch_special_source(obj, source, original)
         else
-          v = fetch_and_delete_dotted(obj, source)
+          v = fetch_and_delete_dotted(obj, source) || row_source[source]
           case v
           when Hash
             v = JSON.dump(Hash[v.map { |k,v| [k, transform_primitive(v)] }])
@@ -235,6 +236,7 @@ module MoSQL
             v = transform_primitive(v, type)
           end
         end
+        row_source[source] = v
         row << v
       end
 
