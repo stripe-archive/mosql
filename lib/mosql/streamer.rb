@@ -115,6 +115,7 @@ module MoSQL
 
         log.info("Importing for Mongo DB #{dbname}...")
         db = @mongo.db(dbname)
+        @schema.set_gridfs(db)
         collections = db.collections.select { |c| spec.key?(c.name) }
 
         collections.each do |collection|

@@ -57,8 +57,13 @@ module MoSQL
       meta
     end
 
+    def set_gridfs(db)
+      @gridfs = Mongo::Grid.new(db)
+    end
+
     def initialize(map)
       @map = {}
+      @gridfs = nil
       map.each do |dbname, db|
         @map[dbname] = { :meta => parse_meta(db[:meta]) }
         db.each do |cname, spec|
@@ -172,10 +177,16 @@ module MoSQL
       obj.has_key?(pieces.first)
     end
 
-    def fetch_special_source(obj, source, original)
+    def fetch_special_source(ns, obj, source, original)
       case source
       when "$timestamp"
         Sequel.function(:now)
+      when "$data"
+        dbname, collection = ns.split(".", 2)
+        if collection == 'fs.files'
+          file = @gridfs.get(original["_id"])
+          Sequel::SQL::Blob.new(file.read)
+        end
       when /^\$exists (.+)/
         # We need to look in the cloned original object, not in the version that
         # has had some fields deleted.
@@ -218,7 +229,7 @@ module MoSQL
         type = col[:type]
 
         if source.start_with?("$")
-          v = fetch_special_source(obj, source, original)
+          v = fetch_special_source(ns, obj, source, original)
         else
           v = fetch_and_delete_dotted(obj, source)
           case v
@@ -318,7 +329,8 @@ module MoSQL
       when DateTime, Time
         val.strftime("%FT%T.%6N %z")
       when Sequel::SQL::Blob
-        "\\\\x" + [val].pack("h*")
+        # "\\\\x" + [val].pack("h*") # Don't know how this affects other use cases...
+        PG::Connection.escape_bytea(val)
       else
         val.to_s.gsub(/([\\\t\n\r])/, '\\\\\\1')
       end
