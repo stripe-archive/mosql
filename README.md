@@ -164,7 +164,7 @@ If you need to force a fresh reimport, run `--reimport`, which will
 cause `mosql` to drop tables, create them anew, and do another import.
 
 Normaly, MoSQL will scan through a list of the databases on the mongo
-server you connect to. You avoid this behavior by specifiying a specific
+server you connect to. You avoid this behavior by specifying a specific
 mongo db to connect to with the `--only-db [dbname]` option. This is
 useful for hosted services which do not let you list all databases (via
 the `listDatabases` command).
