@@ -143,6 +143,16 @@ module MoSQL
       schema
     end
 
+    def fetch_piped(obj, piped)
+      pieces = piped.split("|")
+      attribute_name = pieces[0]
+      subdocument_attribute_name = pieces[1]
+      if obj[attribute_name].kind_of?(Array) and not obj[attribute_name].empty?
+        return obj[attribute_name][-1][subdocument_attribute_name]
+      end
+      return nil
+    end
+
     def fetch_and_delete_dotted(obj, dotted)
       pieces = dotted.split(".")
       breadcrumbs = []
@@ -219,6 +229,8 @@ module MoSQL
 
         if source.start_with?("$")
           v = fetch_special_source(obj, source, original)
+        elsif source.include?("|")
+          v = fetch_piped(obj, source)
         else
           v = fetch_and_delete_dotted(obj, source)
           case v
