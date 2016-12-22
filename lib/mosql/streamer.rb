@@ -52,8 +52,8 @@ module MoSQL
       begin
         @schema.copy_data(table.db, ns, items)
       rescue Sequel::DatabaseError => e
-        log.debug("Bulk insert error (#{e}), attempting invidual upserts...")
-        cols = @schema.all_columns(@schema.find_ns(ns))
+        log.debug("Bulk insert error (#{e}), attempting individual upserts...")
+        cols = @schema.all_columns_for_copy(@schema.find_ns(ns))
         items.each do |it|
           h = {}
           cols.zip(it).each { |k,v| h[k] = v }
