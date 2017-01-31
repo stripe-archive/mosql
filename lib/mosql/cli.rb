@@ -121,7 +121,7 @@ module MoSQL
     end
 
     def connect_mongo
-      @mongo = Mongo::MongoClient.from_uri(options[:mongo])
+      @mongo = Mongo::MongoClient.from_uri(options[:mongo], ssl_opts(options[:mongo]))
       config = @mongo['admin'].command(:ismaster => 1)
       if !config['setName'] && !options[:skip_tail]
         log.warn("`#{options[:mongo]}' is not a replset.")
@@ -175,6 +175,12 @@ module MoSQL
       unless options[:skip_tail]
         @streamer.optail
       end
+    end
+
+    private
+  
+    def ssl_opts(uri)
+      options[:mongo].match /ssl=true/ ? {ssl: true, ssl_verify: false} : {}
     end
   end
 end
