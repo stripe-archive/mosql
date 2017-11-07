@@ -1,3 +1,5 @@
+require 'active_support/inflector'
+
 module MoSQL
   class SchemaError < StandardError; end;
 
@@ -52,9 +54,17 @@ module MoSQL
       end
     end
 
-    def parse_spec(ns, spec)
+    def parse_spec(ns, spec, source=[])
       out = spec.dup
-      out[:columns] = to_array(spec.fetch(:columns))
+      out[:columns] = to_array(spec.delete(:columns))
+      meta = spec.delete(:meta)
+      out[:subtables] = spec.map do |name, subspec|
+        newsource = source + [name]
+        subspec = parse_spec(ns , subspec,  newsource)
+        subspec[:meta][:source] = newsource
+        subspec[:meta][:parent_fkey] = (meta[:table].to_s.singularize + "_id").to_sym
+        subspec
+      end
       check_columns!(ns, out)
       out
     end
@@ -93,53 +103,76 @@ module MoSQL
        end
     end
 
+    def create_table(db, spec, clobber, parent_table=nil, parent_pk_type = nil)
+        meta = spec[:meta]
+        table_name = qualified_table_name(meta)
+        composite_key = meta[:composite_key]
+        keys = []
+        keytypes = []
+        log.info("Creating table #{db.literal(table_name)}...")
+        db.drop_table?(table_name, :cascade => true) if clobber
+        db.create_table(table_name) do
+          spec[:columns].each do |col|
+            opts = {}
+            if col.key?(:default)
+              if col[:default] == "now()"
+                opts[:default] = Sequel.function(:now)
+              else
+                opts[:default] = col[:default]
+              end
+            elsif col[:source] == '$timestamp'
+              opts[:default] = Sequel.function(:now)
+            end
+            if col.key?(:notnull)
+               opts[:null] = !col[:notnull]
+            end
+            column col[:name], col[:type], opts
+
+            if composite_key and composite_key.include?(col[:name])
+              keys << col[:name].to_sym
+              keytypes << col[:type]
+            elsif not composite_key and col[:source].to_sym == :_id
+              keys << col[:name].to_sym
+              keytypes << col[:type]
+            end
+          end
+
+          if meta[:extra_props]
+            type =
+              case meta[:extra_props]
+              when 'JSON'
+                'JSON'
+              when 'JSONB'
+                'JSONB'
+              else
+                'TEXT'
+              end
+            column '_extra_props', type
+          end
+
+          if !parent_table.nil?
+            foreign_key meta[:parent_fkey], parent_table, {
+                :type => parent_pk_type,
+                :on_delete => :cascade,
+                :on_update => :cascade
+            }
+            keys << meta[:parent_fkey]
+            keytypes << parent_pk_type
+          end
+          primary_key keys
+        end
+
+        spec[:subtables].each do |subspec|
+          raise "Too many keys for sub table in #{table_name}: #{keys}" unless keys.length == 1
+          create_table(db, subspec, clobber, table_name, keytypes.first)
+        end
+    end
+
     def create_schema(db, clobber=false)
       @map.values.each do |dbspec|
         dbspec.each do |n, collection|
           next unless n.is_a?(String)
-          meta = collection[:meta]
-          table_name = qualified_table_name(meta)
-          composite_key = meta[:composite_key]
-          keys = []
-          log.info("Creating table #{db.literal(table_name)}...")
-          db.send(clobber ? :create_table! : :create_table?, table_name) do
-            collection[:columns].each do |col|
-              opts = {}
-              if col.key?(:default)
-                if col[:default] == "now()"
-                  opts[:default] = Sequel.function(:now)
-                else
-                  opts[:default] = col[:default]
-                end
-              elsif col[:source] == '$timestamp'
-                opts[:default] = Sequel.function(:now)
-              end
-              if col.key?(:notnull)
-                 opts[:null] = !col[:notnull]
-              end
-              column col[:name], col[:type], opts
-
-              if composite_key and composite_key.include?(col[:name])
-                keys << col[:name].to_sym
-              elsif not composite_key and col[:source].to_sym == :_id
-                keys << col[:name].to_sym
-              end
-            end
-
-            primary_key keys
-            if meta[:extra_props]
-              type =
-                case meta[:extra_props]
-                when 'JSON'
-                  'JSON'
-                when 'JSONB'
-                  'JSONB'
-                else
-                  'TEXT'
-                end
-              column '_extra_props', type
-            end
-          end
+          create_table(db, collection, clobber)
         end
       end
     end
@@ -235,20 +268,18 @@ module MoSQL
       end
     end
 
-    def transform(ns, obj, schema=nil)
-      schema ||= find_ns!(ns)
-
+    def transform_one(schema, obj)
       original = obj
 
       # Do a deep clone, because we're potentially going to be
       # mutating embedded objects.
       obj = BSON.deserialize(BSON.serialize(obj))
 
-      row = []
+      row = {}
       schema[:columns].each do |col|
-
         source = col[:source]
         type = col[:type]
+        name = col[:name]
 
         if source.start_with?("$")
           v = fetch_special_source(obj, source, original)
@@ -268,7 +299,7 @@ module MoSQL
             v = transform_primitive(v, type)
           end
         end
-        row << v
+        row[name] = v
       end
 
       if schema[:meta][:extra_props]
@@ -301,37 +332,79 @@ module MoSQL
       end
     end
 
-    def copy_column?(col)
-      col[:source] != '$timestamp'
-    end
-
-    def all_columns(schema, copy=false)
-      cols = []
-      schema[:columns].each do |col|
-        cols << col[:name] unless copy && !copy_column?(col)
-      end
+    def all_columns(schema)
+      cols = schema[:columns].map { |col| col[:name] }
       if schema[:meta][:extra_props]
         cols << "_extra_props"
       end
       cols
     end
 
-    def all_columns_for_copy(schema)
-      #
-      # We need to return Symbols so that Sequel's DB##copy_into quotes them
-      # correctly.
-      #
-      all_columns(schema, true).map{ |c| c.to_sym }
-    end
-
-    def copy_data(db, ns, objs)
-      schema = find_ns!(ns)
-      table = qualified_table_name(schema[:meta])
-      db[table].import(all_columns_for_copy(schema), objs)
-    end
-
-    def table_for_ns(ns)
+    def primary_table_name_for_ns(ns)
       qualified_table_name(find_ns!(ns)[:meta])
+    end
+
+    def table_names_for_schema(schema)
+      [qualified_table_name(schema[:meta])] + schema[:subtables].map { |s| table_names_for_schema(s) }.flatten
+    end
+
+    def all_table_names_for_ns(ns)
+      table_names_for_schema(find_ns!(ns))
+    end
+
+    def transform_one_ns(ns, obj)
+      transform_one(find_ns!(ns), obj)
+
+    end
+
+    def save_all_pks_for_ns(ns, new, old)
+      schema = find_ns!(ns)
+      primary_sql_keys = primary_sql_keys_for_schema(schema)
+
+      primary_sql_keys.each do |key|
+        source =  schema[:columns].find {|c| c[:name] == key }[:source]
+        new[source] = old[source] unless new.has_key? source
+      end
+
+      new
+    end
+
+    def bson_dig(obj, *keys)
+      keys.each do |k|
+        obj = obj[k.to_s]
+        break if obj.nil?
+      end
+      obj
+    end
+
+    def all_transforms_for_obj(schema, obj, parent_pks={}, &block)
+      table_ident = qualified_table_name(schema[:meta])
+      primary_keys = primary_sql_keys_for_schema(schema)
+
+      # Make sure to add in the primary keys from any parent tables, since we
+      # might not automatically have them.
+      transformed = transform_one(schema, obj).update(parent_pks)
+
+      yield table_ident, primary_keys, transformed
+
+      schema[:subtables].each do |subspec|
+        source = subspec[:meta][:source]
+        subobjs = bson_dig(obj, *source)
+        break if subobjs.nil?
+
+        raise "Too many primary keys" if primary_keys.length > 1
+        pks = {subspec[:meta][:parent_fkey] => transformed[primary_keys[0]]}
+        subobjs.each do |subobj|
+          all_transforms_for_obj(subspec, subobj, pks, &block)
+        end
+      end
+    end
+
+    def all_transforms_for_ns(ns, documents, &block)
+      schema = find_ns!(ns)
+      documents.each do |obj|
+        all_transforms_for_obj(schema, obj, &block)
+      end
     end
 
     def all_mongo_dbs
@@ -342,16 +415,22 @@ module MoSQL
       (@map[db]||{}).keys
     end
 
-    def primary_sql_key_for_ns(ns)
-      ns = find_ns!(ns)
+    def primary_sql_keys_for_schema(schema)
       keys = []
-      if ns[:meta][:composite_key]
-        keys = ns[:meta][:composite_key]
+      if schema[:meta][:composite_key]
+        keys = schema[:meta][:composite_key]
       else
-        keys << ns[:columns].find {|c| c[:source] == '_id'}[:name]
+        keys << schema[:columns].find {|c| c[:source] == '_id'}[:name]
+      end
+      if schema[:meta][:parent_fkey]
+        keys << schema[:meta][:parent_fkey]
       end
 
       return keys
+    end
+
+    def primary_sql_keys_for_ns(ns)
+      primary_sql_keys_for_schema(find_ns!(ns))
     end
   end
 end

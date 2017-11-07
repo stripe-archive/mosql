@@ -22,33 +22,25 @@ module MoSQL
                            end)
     end
 
-    def table_for_ns(ns)
-      @db[@schema.table_for_ns(ns)]
-    end
-
-    def transform_one_ns(ns, obj)
-      h = {}
-      cols = @schema.all_columns(@schema.find_ns(ns))
-      row  = @schema.transform(ns, obj)
-      cols.zip(row).each { |k,v| h[k] = v }
-      h
+    def table_for_ident(ident)
+      @db[ident]
     end
 
     def upsert_ns(ns, obj)
-      h = transform_one_ns(ns, obj)
-      upsert!(table_for_ns(ns), @schema.primary_sql_key_for_ns(ns), h)
+      @schema.all_transforms_for_ns(ns, [obj]) do |table, pks, row|
+        upsert!(table_for_ident(table), pks, row)
+      end
     end
 
     def delete_ns(ns, obj)
-      primary_sql_keys = @schema.primary_sql_key_for_ns(ns)
-      h = transform_one_ns(ns, obj)
-      query = {}
-      primary_sql_keys.each do |key|
-        raise "No #{primary_sql_keys} found in transform of #{obj.inspect}" if h[key].nil?
-        query[key.to_sym] = h[key]
+      @schema.all_transforms_for_ns(ns, [obj]) do |table, pks, row|
+        query = {}
+        pks.each do |key|
+          raise "No #{primary_sql_keys} found in transform of #{obj.inspect}" if row[key].nil?
+          query[key.to_sym] = row[key]
+        end
+        table_for_ident(table).where(query).delete
       end
-
-      table_for_ns(ns).where(query).delete
     end
 
     def upsert!(table, table_primary_keys, item)

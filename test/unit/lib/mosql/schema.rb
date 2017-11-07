@@ -104,8 +104,8 @@ EOF
   end
 
   it 'Can find the primary key of the SQL table' do
-    assert_equal(['id'], @map.primary_sql_key_for_ns('db.collection'))
-    assert_equal(['_id'], @map.primary_sql_key_for_ns('db.old_conf_syntax'))
+    assert_equal(['id'], @map.primary_sql_keys_for_ns('db.collection'))
+    assert_equal(['_id'], @map.primary_sql_keys_for_ns('db.old_conf_syntax'))
   end
 
   it 'can create a SQL schema' do
