@@ -9,11 +9,21 @@ module MoSQL
         col = nil
         if ent.is_a?(Hash) && ent[:source].is_a?(String) && ent[:type].is_a?(String)
           # new configuration format
-          col = {
-            :source => ent.fetch(:source),
-            :type   => ent.fetch(:type),
-            :name   => (ent.keys - [:source, :type]).first,
-          }
+          ment = ent.clone
+          col = {}
+          col[:source] = ment.delete(:source)
+          col[:type] = ment.delete(:type)
+          col[:default] = ment.delete(:default) if ent.has_key?(:default)
+          col[:notnull] = ment.delete(:notnull) if ent.has_key?(:notnull)
+
+
+          if col[:type].downcase.include? "not null" or col[:type].downcase.include? "default"
+            raise SchemaError.new("Type has modifiers, use fields to modify type instead: #{ent.inspect}")
+          end
+          if ment.keys.length != 1
+              raise SchemaError.new("Invalid new configuration entry #{ent.inspect}")
+          end
+          col[:name] = ment.keys.first
         elsif ent.is_a?(Hash) && ent.keys.length == 1 && ent.values.first.is_a?(String)
           col = {
             :source => ent.first.first,
@@ -75,19 +85,37 @@ module MoSQL
       Sequel.default_timezone = :utc
     end
 
+    def qualified_table_name(meta)
+       if meta.key?(:schema)
+          Sequel.qualify(meta[:schema], meta[:table])
+       else
+          meta[:table].to_sym
+       end
+    end
+
     def create_schema(db, clobber=false)
       @map.values.each do |dbspec|
         dbspec.each do |n, collection|
           next unless n.is_a?(String)
           meta = collection[:meta]
+          table_name = qualified_table_name(meta)
           composite_key = meta[:composite_key]
           keys = []
-          log.info("Creating table '#{meta[:table]}'...")
-          db.send(clobber ? :create_table! : :create_table?, meta[:table]) do
+          log.info("Creating table #{db.literal(table_name)}...")
+          db.send(clobber ? :create_table! : :create_table?, table_name) do
             collection[:columns].each do |col|
               opts = {}
-              if col[:source] == '$timestamp'
+              if col.key?(:default)
+                if col[:default] == "now()"
+                  opts[:default] = Sequel.function(:now)
+                else
+                  opts[:default] = col[:default]
+                end
+              elsif col[:source] == '$timestamp'
                 opts[:default] = Sequel.function(:now)
+              end
+              if col.key?(:notnull)
+                 opts[:null] = !col[:notnull]
               end
               column col[:name], col[:type], opts
 
@@ -185,10 +213,13 @@ module MoSQL
       end
     end
 
-    def transform_primitive(v, type=nil)
+    def transform_primitive(v, type)
       case v
-      when BSON::ObjectId, Symbol
+      when Symbol
         v.to_s
+      # Hex decode the object ID to a blob so we insert raw binary.
+      when BSON::ObjectId
+        Sequel::SQL::Blob.new([v.to_s].pack("H*"))
       when BSON::Binary
         if type.downcase == 'uuid'
           v.to_s.unpack("H*").first
@@ -197,6 +228,8 @@ module MoSQL
         end
       when BSON::DBRef
         v.object_id.to_s
+      when Hash, Array
+        JSON.dump(v)
       else
         v
       end
@@ -223,10 +256,10 @@ module MoSQL
           v = fetch_and_delete_dotted(obj, source)
           case v
           when Hash
-            v = JSON.dump(Hash[v.map { |k,v| [k, transform_primitive(v)] }])
+            v = JSON.dump(v)
           when Array
-            v = v.map { |it| transform_primitive(it) }
             if col[:array_type]
+              v = v.map { |it| transform_primitive(it, col[:array_type]) }
               v = Sequel.pg_array(v, col[:array_type])
             else
               v = JSON.dump(v)
@@ -284,52 +317,21 @@ module MoSQL
     end
 
     def all_columns_for_copy(schema)
-      all_columns(schema, true)
+      #
+      # We need to return Symbols so that Sequel's DB##copy_into quotes them
+      # correctly.
+      #
+      all_columns(schema, true).map{ |c| c.to_sym }
     end
 
     def copy_data(db, ns, objs)
       schema = find_ns!(ns)
-      db.synchronize do |pg|
-        sql = "COPY \"#{schema[:meta][:table]}\" " +
-          "(#{all_columns_for_copy(schema).map {|c| "\"#{c}\""}.join(",")}) FROM STDIN"
-        pg.execute(sql)
-        objs.each do |o|
-          pg.put_copy_data(transform_to_copy(ns, o, schema) + "\n")
-        end
-        pg.put_copy_end
-        begin
-          pg.get_result.check
-        rescue PGError => e
-          db.send(:raise_error, e)
-        end
-      end
-    end
-
-    def quote_copy(val)
-      case val
-      when nil
-        "\\N"
-      when true
-        't'
-      when false
-        'f'
-      when Sequel::SQL::Function
-        nil
-      when DateTime, Time
-        val.strftime("%FT%T.%6N %z")
-      when Sequel::SQL::Blob
-        "\\\\x" + [val].pack("h*")
-      else
-        val.to_s.gsub(/([\\\t\n\r])/, '\\\\\\1')
-      end
-    end
-
-    def transform_to_copy(ns, row, schema=nil)
-      row.map { |c| quote_copy(c) }.compact.join("\t")
+      table = qualified_table_name(schema[:meta])
+      db[table].import(all_columns_for_copy(schema), objs)
     end
 
     def table_for_ns(ns)
-      find_ns!(ns)[:meta][:table]
+      qualified_table_name(find_ns!(ns)[:meta])
     end
 
     def all_mongo_dbs

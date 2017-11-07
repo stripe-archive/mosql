@@ -23,7 +23,7 @@ module MoSQL
     end
 
     def table_for_ns(ns)
-      @db[@schema.table_for_ns(ns).intern]
+      @db[@schema.table_for_ns(ns)]
     end
 
     def transform_one_ns(ns, obj)

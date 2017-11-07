@@ -52,7 +52,7 @@ module MoSQL
       begin
         @schema.copy_data(table.db, ns, items)
       rescue Sequel::DatabaseError => e
-        log.debug("Bulk insert error (#{e}), attempting invidual upserts...")
+        log.warn("Bulk insert error (#{e}), attempting invidual upserts...")
         cols = @schema.all_columns(@schema.find_ns(ns))
         items.each do |it|
           h = {}
@@ -163,6 +163,9 @@ module MoSQL
       unless batch.empty?
         bulk_upsert(table, ns, batch)
       end
+
+      elapsed = Time.now - start
+      log.info("Finished import of #{count} rows (#{elapsed}s, #{sql_time}s SQL)...")
     end
 
     def optail
