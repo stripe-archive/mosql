@@ -246,6 +246,18 @@ module MoSQL
       end
     end
 
+    def sanity_check_type(v, type)
+      type = type.downcase
+      if (not v.nil? and not v.is_a? Time and type == "timestamp") or
+          (v.is_a? Time and not type == "timestamp") or
+          (v.is_a? Integer and not type.end_with?('int')) or
+          (not v.nil? and not v.is_a? Integer and type.end_with?('int') and v.modulo(1) != 0)
+        false
+      else
+        true
+      end
+    end
+
     def transform_primitive(v, type)
       case v
       when Symbol
@@ -254,13 +266,9 @@ module MoSQL
       when BSON::ObjectId
         Sequel::SQL::Blob.new([v.to_s].pack("H*"))
       when BSON::Binary
-        if type.downcase == 'uuid'
-          v.to_s.unpack("H*").first
-        else
-          Sequel::SQL::Blob.new(v.to_s)
-        end
+        Sequel::SQL::Blob.new(v.to_s)
       when BSON::DBRef
-        v.object_id.to_s
+        Sequel::SQL::Blob.new([v.object_id.to_s].pack("H*"))
       when Hash, Array
         JSON.dump(v)
       else
@@ -276,6 +284,9 @@ module MoSQL
       obj = BSON.deserialize(BSON.serialize(obj))
 
       row = {}
+      sql_pks = primary_sql_keys_for_schema(schema)
+      pk_cols = schema[:columns].select{ |c| sql_pks.include?(c[:name]) }
+      pks = Hash[pk_cols.map { |c| [c[:name], bson_dig_dotted(obj, c[:source])] }]
       schema[:columns].each do |col|
         source = col[:source]
         type = col[:type]
@@ -298,6 +309,15 @@ module MoSQL
           else
             v = transform_primitive(v, type)
           end
+        end
+
+        null_allowed = !col[:notnull] or col.has_key?(:default)
+        if v.nil? and not null_allowed
+          raise "Invalid null #{source.inspect} for #{pks.inspect}"
+        elsif v.is_a? Sequel::SQL::Blob and type != "bytea"
+          raise "Failed to convert binary #{source.inspect} to #{type.inspect} for #{pks.inspect}"
+        elsif not sanity_check_type(v, type)
+          raise "Failed to convert #{source.inspect} to #{type.inspect}: got #{v.inspect} for #{pks.inspect}"
         end
         row[name] = v
       end
@@ -375,6 +395,10 @@ module MoSQL
         break if obj.nil?
       end
       obj
+    end
+
+    def bson_dig_dotted(obj, path)
+      bson_dig(obj, *path.split("."))
     end
 
     def all_transforms_for_obj(schema, obj, parent_pks={}, &block)
