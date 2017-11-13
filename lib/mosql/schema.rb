@@ -442,7 +442,7 @@ module MoSQL
     def primary_sql_keys_for_schema(schema)
       keys = []
       if schema[:meta][:composite_key]
-        keys = schema[:meta][:composite_key]
+        keys = schema[:meta][:composite_key].map{ |k| k.to_sym }
       else
         keys << schema[:columns].find {|c| c[:source] == '_id'}[:name]
       end
