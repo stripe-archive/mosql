@@ -316,6 +316,12 @@ module MoSQL
           raise "Invalid null #{source.inspect} for #{pks.inspect}"
         elsif v.is_a? Sequel::SQL::Blob and type != "bytea"
           raise "Failed to convert binary #{source.inspect} to #{type.inspect} for #{pks.inspect}"
+        elsif col[:array_type]
+          v.each_with_index do |e, i|
+            if not sanity_check_type(e, col[:array_type])
+              raise "Failed to convert array element #{i} of #{source.inspect} to #{type.inspect}: got #{e.inspect} for #{pks.inspect}"
+            end
+         end
         elsif not sanity_check_type(v, type)
           raise "Failed to convert #{source.inspect} to #{type.inspect}: got #{v.inspect} for #{pks.inspect}"
         end
