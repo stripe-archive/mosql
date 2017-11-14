@@ -158,7 +158,7 @@ module MoSQL
             if count % BATCH == 0
               sql_time += upsert_all_batches(batches, ns)
               elapsed = Time.now - start
-              log.info("Imported #{count} rows into #{collection} (#{elapsed}s, #{sql_time}s SQL)...")
+              log.info("Imported #{count} rows into #{ns} (#{elapsed}s, #{sql_time}s SQL)...")
               exit(0) if @done
             end
           end
