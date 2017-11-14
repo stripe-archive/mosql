@@ -248,8 +248,8 @@ module MoSQL
 
     def sanity_check_type(v, type)
       type = type.downcase
-      if (not v.nil? and not v.is_a? Time and type == "timestamp") or
-          (v.is_a? Time and not type == "timestamp") or
+      if (not v.nil? and not v.is_a? Time and type.include? "timestamp") or
+          (v.is_a? Time and not type.include? "timestamp") or
           (v.is_a? Integer and not type.end_with?('int')) or
           (not v.nil? and not v.is_a? Integer and type.end_with?('int') and v.modulo(1) != 0)
         false
