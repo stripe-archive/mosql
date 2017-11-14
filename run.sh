@@ -1,1 +1,3 @@
-RUBYLIB=$PWD/lib:$RUBYLIB ./bin/mosql
+#!/bin/bash
+
+RUBYLIB=$PWD/lib:$RUBYLIB ./bin/mosql "$@"
