@@ -28,8 +28,6 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency "bson", "~> 1.10"
   gem.add_runtime_dependency "bson_ext", "~> 1.10"
 
-  gem.add_runtime_dependency "activesupport", "4.2.6"
-
   gem.add_development_dependency "minitest"
   gem.add_development_dependency "mocha"
 end

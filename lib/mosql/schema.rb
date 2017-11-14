@@ -1,4 +1,4 @@
-require 'active_support/inflector'
+Sequel.extension :inflector
 
 module MoSQL
   class SchemaError < StandardError; end;
