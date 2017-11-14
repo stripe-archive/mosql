@@ -1,3 +1,5 @@
+require 'Parallel'
+
 module MoSQL
   class Streamer
     include MoSQL::Logging
@@ -106,7 +108,7 @@ module MoSQL
         db = @mongo.db(dbname)
         collections = db.collections.select { |c| spec.key?(c.name) }
 
-        collections.each do |collection|
+        Parallel.each(collections, in_threads: 8) do |collection|
           ns = "#{dbname}.#{collection.name}"
           import_collection(ns, collection, spec[collection.name][:meta][:filter])
           exit(0) if @done
@@ -156,7 +158,7 @@ module MoSQL
             if count % BATCH == 0
               sql_time += upsert_all_batches(batches, ns)
               elapsed = Time.now - start
-              log.info("Imported #{count} rows (#{elapsed}s, #{sql_time}s SQL)...")
+              log.info("Imported #{count} rows into #{collection} (#{elapsed}s, #{sql_time}s SQL)...")
               exit(0) if @done
             end
           end
