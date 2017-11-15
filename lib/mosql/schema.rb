@@ -58,16 +58,15 @@ module MoSQL
       (parent.to_s.singularize + "_" + colname.to_s).to_sym
     end
 
-    def parse_spec(ns, spec, source=[], parent_pks=[])
+    def parse_spec(ns, spec, parent_pks=[])
       out = spec.dup
       out[:columns] = to_array(spec.delete(:columns))
       meta = spec.delete(:meta)
       pks = parent_pks + primary_sql_keys_for_schema(out).map { |k| parent_scope_column(meta[:table], k) }
 
       out[:subtables] = spec.map do |name, subspec|
-        newsource = source + [name]
-        subspec = parse_spec(ns , subspec,  newsource, pks)
-        subspec[:meta][:source] = newsource
+        subspec = parse_spec(ns , subspec, pks)
+        subspec[:meta][:source] = name.to_s
         subspec[:meta][:parent_fkeys] = pks
         subspec
       end
@@ -437,7 +436,7 @@ module MoSQL
       ] } ].update(parent_pks)
       schema[:subtables].each do |subspec|
         source = subspec[:meta][:source]
-        subobjs = bson_dig(obj, *source)
+        subobjs = bson_dig_dotted(obj, source)
         break if subobjs.nil?
 
         subobjs.each do |subobj|
