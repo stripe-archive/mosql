@@ -161,10 +161,10 @@ module MoSQL
                 :on_update => :cascade
             }
           end
-          primary_key primary_keys.keys + parent_pks.keys
+          primary_key parent_pks.keys + primary_keys.keys
         end
 
-        parent_pks = Hash[primary_keys.map { |k, t| [parent_scope_column(meta[:table], k), t] }].merge(parent_pks)
+        parent_pks = parent_pks.merge(Hash[primary_keys.map { |k, t| [parent_scope_column(meta[:table], k), t] }])
         spec[:subtables].each do |subspec|
           create_table(db, subspec, clobber, table_name, parent_pks)
         end
