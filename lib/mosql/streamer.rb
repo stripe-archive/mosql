@@ -1,4 +1,4 @@
-require 'Parallel'
+require 'parallel'
 
 module MoSQL
   class Streamer
