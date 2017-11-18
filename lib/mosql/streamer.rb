@@ -108,7 +108,7 @@ module MoSQL
         db = @mongo.db(dbname)
         collections = db.collections.select { |c| spec.key?(c.name) }
 
-        Parallel.each(collections, in_threads: 8) do |collection|
+        Parallel.each(collections, in_threads: 4) do |collection|
           ns = "#{dbname}.#{collection.name}"
           import_collection(ns, collection, spec[collection.name][:meta][:filter])
           exit(0) if @done
