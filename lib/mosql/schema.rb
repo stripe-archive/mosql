@@ -326,17 +326,17 @@ module MoSQL
 
         null_allowed = !col[:notnull] or col.has_key?(:default)
         if v.nil? and not null_allowed
-          raise "Invalid null #{source.inspect} for #{get_pks_for_debug(schema, obj, parent_pks)}"
+          raise "Invalid null #{source.inspect} for #{get_pks_for_debug(schema, original, parent_pks)}"
         elsif v.is_a? Sequel::SQL::Blob and type != "bytea"
-          raise "Failed to convert binary #{source.inspect} to #{type.inspect} for #{get_pks_for_debug(schema, obj, parent_pks)}"
+          raise "Failed to convert binary #{source.inspect} to #{type.inspect} for #{get_pks_for_debug(schema, original, parent_pks)}"
         elsif col[:array_type] and not v.nil?
           v.each_with_index do |e, i|
             if not sanity_check_type(e, col[:array_type])
-              raise "Failed to convert array element #{i} of #{source.inspect} to #{type.inspect}: got #{e.inspect} for #{get_pks_for_debug(schema, obj, parent_pks)}"
+              raise "Failed to convert array element #{i} of #{source.inspect} to #{type.inspect}: got #{e.inspect} for #{get_pks_for_debug(schema, original, parent_pks)}"
             end
          end
         elsif not v.nil? and not sanity_check_type(v, type)
-          raise "Failed to convert #{source.inspect} to #{type.inspect}: got #{v.inspect} for #{get_pks_for_debug(schema, obj, parent_pks)}"
+          raise "Failed to convert #{source.inspect} to #{type.inspect}: got #{v.inspect} for #{get_pks_for_debug(schema, original, parent_pks)}"
         end
         row[name] = v
       end
