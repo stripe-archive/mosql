@@ -25,11 +25,11 @@ module MoSQL
           if ment.keys.length != 1
               raise SchemaError.new("Invalid new configuration entry #{ent.inspect}")
           end
-          col[:name] = ment.keys.first
+          col[:name] = ment.keys.first.to_sym
         elsif ent.is_a?(Hash) && ent.keys.length == 1 && ent.values.first.is_a?(String)
           col = {
             :source => ent.first.first,
-            :name   => ent.first.first,
+            :name   => ent.first.first.to_sym,
             :type   => ent.first.last
           }
         else
