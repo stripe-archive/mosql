@@ -33,22 +33,13 @@ module MoSQL
     end
 
     def delete_ns(ns, obj)
-      @schema.all_transforms_for_ns(ns, [obj]) do |table, pks, row|
-        query = {}
-        pks.each do |key|
-          raise "No #{primary_sql_keys} found in transform of #{obj.inspect}" if row[key].nil?
-          query[key.to_sym] = row[key]
-        end
-        table_for_ident(table).where(query).delete
+      @schema.all_transforms_for_ns(ns, [obj]) do |table, pks, _|
+        table_for_ident(table).where(pks).delete
       end
     end
 
     def upsert!(table, table_primary_keys, item)
-      query = {}
-      table_primary_keys.each do |key|
-        query[key.to_sym] = item[key]
-      end
-      rows = table.where(query).update(item)
+      rows = table.where(table_primary_keys).update(item)
       if rows == 0
         begin
           table.insert(item)

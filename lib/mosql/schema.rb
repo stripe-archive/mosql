@@ -338,7 +338,7 @@ module MoSQL
         elsif not v.nil? and not sanity_check_type(v, type)
           raise "Failed to convert #{source.inspect} to #{type.inspect}: got #{v.inspect} for #{get_pks_for_debug(schema, original, parent_pks)}"
         end
-        row[name] = v
+        row[name.to_sym] = v
       end
 
       if schema[:meta][:extra_props]
@@ -422,15 +422,18 @@ module MoSQL
 
     def all_transforms_for_obj(schema, obj, parent_pks={}, &block)
       table_ident = qualified_table_name(schema[:meta])
-      primary_keys = primary_sql_keys_for_schema(schema)
 
       # Make sure to add in the primary keys from any parent tables, since we
       # might not automatically have them.
       transformed = transform_one(schema, obj, parent_pks)
 
+      primary_keys = Hash[primary_sql_keys_for_schema(schema).map { |k|
+            [ k, transformed[k] ]
+      }].update(parent_pks)
+
       yield table_ident, primary_keys, transformed
 
-      pks = Hash[primary_keys.map { |k| [
+      new_parent_pks = Hash[primary_sql_keys_for_schema(schema).map { |k| [
             parent_scope_column(schema[:meta][:table], k),
             transformed[k]
       ] } ].update(parent_pks)
@@ -440,7 +443,7 @@ module MoSQL
         break if subobjs.nil?
 
         subobjs.each do |subobj|
-          all_transforms_for_obj(subspec, subobj, pks, &block)
+          all_transforms_for_obj(subspec, subobj,new_parent_pks, &block)
         end
       end
     end
@@ -465,7 +468,7 @@ module MoSQL
       if schema[:meta][:composite_key]
         keys = schema[:meta][:composite_key].map{ |k| k.to_sym }
       else
-        keys << schema[:columns].find {|c| c[:source] == '_id'}[:name]
+        keys << schema[:columns].find {|c| c[:source] == '_id'}[:name].to_sym
       end
 
       return keys
