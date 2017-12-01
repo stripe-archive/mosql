@@ -80,12 +80,10 @@ module MoSQL
     def initial_import
       @schema.create_schema(@sql.db, !options[:no_drop_tables])
 
-      unless options[:skip_tail]
-        start_state = {
-          'time' => nil,
-          'position' => @tailer.most_recent_position
-        }
-      end
+      start_state = {
+        'time' => nil,
+        'position' => @tailer.most_recent_position
+      }
 
       dbnames = []
 
@@ -115,7 +113,7 @@ module MoSQL
         end
       end
 
-      tailer.save_state(start_state) unless options[:skip_tail]
+      tailer.save_state(start_state)
     end
 
     def did_truncate; @did_truncate ||= {}; end
