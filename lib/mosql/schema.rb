@@ -59,10 +59,11 @@ module MoSQL
     end
 
     def parse_spec(ns, spec, parent_pks=[])
-      out = spec.dup
-      out[:columns] = to_array(spec.delete(:columns))
-      meta = spec.delete(:meta)
-      pks = parent_pks + primary_sql_keys_for_schema(out).map { |k| parent_scope_column(meta[:table], k) }
+      out = {
+        :columns => to_array(spec.delete(:columns)),
+        :meta => parse_collection_meta(spec.delete(:meta))
+      }
+      pks = parent_pks + primary_sql_keys_for_schema(out).map { |k| parent_scope_column(out[:meta][:table], k) }
 
       out[:subtables] = spec.map do |name, subspec|
         subspec = parse_spec(ns , subspec, pks)
@@ -74,7 +75,13 @@ module MoSQL
       out
     end
 
-    def parse_meta(meta)
+    def parse_collection_meta(meta)
+      meta = {} if meta.nil?
+      meta[:composite_key] = meta[:composite_key].map { |k| k.to_sym } if meta[:composite_key]
+      meta
+    end
+
+    def parse_db_meta(meta)
       meta = {} if meta.nil?
       meta[:alias] = [] unless meta.key?(:alias)
       meta[:alias] = [meta[:alias]] unless meta[:alias].is_a?(Array)
@@ -85,7 +92,7 @@ module MoSQL
     def initialize(map)
       @map = {}
       map.each do |dbname, db|
-        @map[dbname] = { :meta => parse_meta(db[:meta]) }
+        @map[dbname] = { :meta => parse_db_meta(db[:meta]) }
         db.each do |cname, spec|
           next unless cname.is_a?(String)
           begin
@@ -133,9 +140,9 @@ module MoSQL
             column col[:name], col[:type], opts
 
             if composite_key and composite_key.include?(col[:name])
-              primary_keys[col[:name].to_sym] = col[:type]
+              primary_keys[col[:name]] = col[:type]
             elsif not composite_key and col[:source].to_sym == :_id
-              primary_keys[col[:name].to_sym] = col[:type]
+              primary_keys[col[:name]] = col[:type]
             end
           end
 
@@ -466,9 +473,9 @@ module MoSQL
     def primary_sql_keys_for_schema(schema)
       keys = []
       if schema[:meta][:composite_key]
-        keys = schema[:meta][:composite_key].map{ |k| k.to_sym }
+        keys = schema[:meta][:composite_key].clone
       else
-        keys << schema[:columns].find {|c| c[:source] == '_id'}[:name].to_sym
+        keys << schema[:columns].find {|c| c[:source] == '_id'}[:name]
       end
 
       return keys
