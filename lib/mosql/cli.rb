@@ -26,7 +26,6 @@ module MoSQL
     def setup_signal_handlers
       %w[TERM INT USR2].each do |sig|
         Signal.trap(sig) do
-          log.info("Got SIG#{sig}. Preparing to exit...")
           @streamer.stop
         end
       end
