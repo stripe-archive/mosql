@@ -259,7 +259,7 @@ module MoSQL
       type = type.downcase
       if (not v.nil? and not v.is_a? Time and type.include? "timestamp") or
           (v.is_a? Time and not type.include? "timestamp") or
-          (v.is_a? Integer and not type.include?('int') and not type.include?('float')) or
+          (v.is_a? Integer and not type.include?('int') and not type.include?('float') and not type.include?("numeric")) or
           (not v.nil? and not v.is_a? Integer and type.include?('int') and v.modulo(1) != 0)
         false
       else
