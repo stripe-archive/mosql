@@ -312,7 +312,7 @@ module MoSQL
       pks
     end
 
-    def transform_one(schema, obj, parent_pks={})
+    def transform_one(schema, obj, parent_pks={}, only_pks=false)
       original = obj
 
       # Do a deep clone, because we're potentially going to be
@@ -320,10 +320,13 @@ module MoSQL
       obj = BSON.deserialize(BSON.serialize(obj))
 
       row = parent_pks.clone
+      pk_names = primary_sql_keys_for_schema(schema)
       schema[:columns].each do |col|
         source = col[:source]
         type = col[:type]
         name = col[:name]
+
+        next if only_pks and not pk_names.include?(col[:name])
 
         if source.start_with?("$")
           v = fetch_special_source(obj, source, original)
@@ -331,24 +334,25 @@ module MoSQL
           v = transform_value(col, fetch_and_delete_dotted(obj, source))
         end
 
+        obj_description = "#{get_pks_for_debug(schema, original, parent_pks)} of #{qualified_table_name(schema[:meta])}"
         null_allowed = !col[:notnull] or col.has_key?(:default)
         if v.nil? and not null_allowed
-          raise "Invalid null #{source.inspect} for #{get_pks_for_debug(schema, original, parent_pks)}"
+          raise "Invalid null #{source.inspect} for #{obj_description}"
         elsif v.is_a? Sequel::SQL::Blob and type != "bytea"
-          raise "Failed to convert binary #{source.inspect} to #{type.inspect} for #{get_pks_for_debug(schema, original, parent_pks)}"
+          raise "Failed to convert binary #{source.inspect} to #{type.inspect} for #{obj_description}"
         elsif col[:array_type] and not v.nil?
           v.each_with_index do |e, i|
             if not sanity_check_type(e, col[:array_type])
-              raise "Failed to convert array element #{i} of #{source.inspect} to #{type.inspect}: got #{e.inspect} for #{get_pks_for_debug(schema, original, parent_pks)}"
+              raise "Failed to convert array element #{i} of #{source.inspect} to #{type.inspect}: got #{e.inspect} for #{obj_description}"
             end
          end
         elsif not v.nil? and not sanity_check_type(v, type)
-          raise "Failed to convert #{source.inspect} to #{type.inspect}: got #{v.inspect} for #{get_pks_for_debug(schema, original, parent_pks)}"
+          raise "Failed to convert #{source.inspect} to #{type.inspect}: got #{v.inspect} for #{obj_description}"
         end
         row[name.to_sym] = v
       end
 
-      if schema[:meta][:extra_props]
+      if schema[:meta][:extra_props] and not only_pks
         extra = sanitize(obj)
         row << JSON.dump(extra)
       end
@@ -481,8 +485,8 @@ module MoSQL
       return keys
     end
 
-    def primary_sql_keys_for_ns(ns)
-      primary_sql_keys_for_schema(find_ns!(ns))
+    def primary_sql_keys_for_ns_obj(ns, obj)
+      transform_one(find_ns!(ns), obj, {}, true)
     end
   end
 end

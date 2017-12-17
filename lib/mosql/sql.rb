@@ -33,9 +33,9 @@ module MoSQL
     end
 
     def delete_ns(ns, obj)
-      @schema.all_transforms_for_ns(ns, [obj]) do |table, pks, _|
-        table_for_ident(table).where(pks).delete
-      end
+      table = table_for_ident(@schema.primary_table_name_for_ns(ns))
+      pks = @schema.primary_sql_keys_for_ns_obj(ns, obj)
+      table.where(pks).delete
     end
 
     def upsert!(table, table_primary_keys, item)
