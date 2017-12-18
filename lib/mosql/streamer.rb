@@ -157,8 +157,8 @@ module MoSQL
               sql_time += upsert_all_batches(batches, ns)
               elapsed = Time.now - start
               log.info("Imported #{count} rows into #{ns} (#{elapsed}s, #{sql_time}s SQL)...")
-              exit(0) if @done
             end
+            exit(0) if @done
           end
         end
       end
@@ -176,10 +176,11 @@ module MoSQL
       end
       tailer.tail(:from => tail_from, :filter => options[:oplog_filter])
       until @done
-        tailer.stream(1000) do |op|
+        tailer.stream(5) do |op|
           handle_op(op)
         end
       end
+      tailer.save_state
     end
 
     def sync_object(ns, selector)
