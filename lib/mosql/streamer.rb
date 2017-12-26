@@ -108,7 +108,12 @@ module MoSQL
 
         Parallel.each(collections, in_threads: 4) do |collection|
           ns = "#{dbname}.#{collection.name}"
-          import_collection(ns, collection, spec[collection.name][:meta][:filter])
+          begin
+            import_collection(ns, collection, spec[collection.name][:meta][:filter])
+          rescue Exception => ex
+            log.error("Error importing collection #{ns} - #{ex.message}:\n#{ex.backtrace.join("\n")}")
+            raise Parallel::Kill
+          end
           exit(0) if @done
         end
       end
