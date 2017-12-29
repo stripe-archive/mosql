@@ -1,3 +1,4 @@
 collections.yml
 /.bundle/
 Gemfile.lock
+vendor
