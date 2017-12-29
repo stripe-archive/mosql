@@ -21,6 +21,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency "rake"
   gem.add_runtime_dependency "log4r"
   gem.add_runtime_dependency "json"
+  gem.add_runtime_dependency "parallel"
 
   gem.add_runtime_dependency "mongoriver", "0.4"
 

@@ -1,3 +1,5 @@
+require 'parallel'
+
 module MoSQL
   class Streamer
     include MoSQL::Logging
@@ -49,25 +51,14 @@ module MoSQL
     end
 
     def bulk_upsert(table, ns, items)
-      begin
-        @schema.copy_data(table.db, ns, items)
-      rescue Sequel::DatabaseError => e
-        log.debug("Bulk insert error (#{e}), attempting invidual upserts...")
-        cols = @schema.all_columns(@schema.find_ns(ns))
-        items.each do |it|
-          h = {}
-          cols.zip(it).each { |k,v| h[k] = v }
-          unsafe_handle_exceptions(ns, h) do
-            @sql.upsert!(table, @schema.primary_sql_key_for_ns(ns), h)
-          end
-        end
-      end
+      table.multi_insert(items)
     end
 
     def with_retries(tries=10)
       tries.times do |try|
         begin
           yield
+          break
         rescue Mongo::ConnectionError, Mongo::ConnectionFailure, Mongo::OperationFailure => e
           # Duplicate key error
           raise if e.kind_of?(Mongo::OperationFailure) && [11000, 11001].include?(e.error_code)
@@ -89,12 +80,10 @@ module MoSQL
     def initial_import
       @schema.create_schema(@sql.db, !options[:no_drop_tables])
 
-      unless options[:skip_tail]
-        start_state = {
-          'time' => nil,
-          'position' => @tailer.most_recent_position
-        }
-      end
+      start_state = {
+        'time' => nil,
+        'position' => @tailer.most_recent_position
+      }
 
       dbnames = []
 
@@ -117,25 +106,45 @@ module MoSQL
         db = @mongo.db(dbname)
         collections = db.collections.select { |c| spec.key?(c.name) }
 
-        collections.each do |collection|
+        Parallel.each(collections, in_threads: 4) do |collection|
           ns = "#{dbname}.#{collection.name}"
-          import_collection(ns, collection, spec[collection.name][:meta][:filter])
+          begin
+            import_collection(ns, collection, spec[collection.name][:meta][:filter])
+          rescue Exception => ex
+            log.error("Error importing collection #{ns} - #{ex.message}:\n#{ex.backtrace.join("\n")}")
+          end
           exit(0) if @done
         end
       end
 
-      tailer.save_state(start_state) unless options[:skip_tail]
+      tailer.save_state(start_state)
     end
 
     def did_truncate; @did_truncate ||= {}; end
 
+    def upsert_all_batches(batches, ns)
+      # We use all_table_names_for_ns so we can ensure we write the parent table
+      # before we write the child.
+      sql_time = 0
+      @schema.all_table_names_for_ns(ns).map do |table_name|
+        unless batches[table_name].empty?
+          sql_time += track_time do
+            bulk_upsert(@sql.table_for_ident(table_name), ns,
+                        batches[table_name])
+            batches[table_name].clear
+          end
+        end
+      end
+      sql_time
+    end
+
     def import_collection(ns, collection, filter)
       log.info("Importing for #{ns}...")
       count = 0
-      batch = []
-      table = @sql.table_for_ns(ns)
+      batches = Hash[@schema.all_table_names_for_ns(ns).map { |n| [n, []] }]
+      table = @sql.table_for_ident(@schema.primary_table_name_for_ns(ns))
       unless options[:no_drop_tables] || did_truncate[table.first_source]
-        table.truncate
+        table.truncate :cascade => true
         did_truncate[table.first_source] = true
       end
 
@@ -143,26 +152,25 @@ module MoSQL
       sql_time = 0
       collection.find(filter, :batch_size => BATCH) do |cursor|
         with_retries do
-          cursor.each do |obj|
-            batch << @schema.transform(ns, obj)
+          @schema.all_transforms_for_ns(ns, cursor) do |ident, _, row|
+            table = @sql.table_for_ident(ident)
             count += 1
+            batches[ident] << row
 
-            if batch.length >= BATCH
-              sql_time += track_time do
-                bulk_upsert(table, ns, batch)
-              end
+            if count % BATCH == 0
+              sql_time += upsert_all_batches(batches, ns)
               elapsed = Time.now - start
-              log.info("Imported #{count} rows (#{elapsed}s, #{sql_time}s SQL)...")
-              batch.clear
-              exit(0) if @done
+              log.info("Imported #{count} rows into #{ns} (#{elapsed}s, #{sql_time}s SQL)...")
             end
+            exit(0) if @done
           end
         end
       end
 
-      unless batch.empty?
-        bulk_upsert(table, ns, batch)
-      end
+      sql_time += upsert_all_batches(batches, ns)
+
+      elapsed = Time.now - start
+      log.info("Finished import of #{count} rows (#{elapsed}s, #{sql_time}s SQL)...")
     end
 
     def optail
@@ -172,10 +180,11 @@ module MoSQL
       end
       tailer.tail(:from => tail_from, :filter => options[:oplog_filter])
       until @done
-        tailer.stream(1000) do |op|
+        tailer.stream(5) do |op|
           handle_op(op)
         end
       end
+      tailer.save_state
     end
 
     def sync_object(ns, selector)
@@ -231,22 +240,12 @@ module MoSQL
           log.debug("resync #{ns}: #{selector['_id']} (update was: #{update.inspect})")
           sync_object(ns, selector)
         else
-
           # The update operation replaces the existing object, but
           # preserves its _id field, so grab the _id off of the
           # 'query' field -- it's not guaranteed to be present on the
           # update.
-          primary_sql_keys = @schema.primary_sql_key_for_ns(ns)
-          schema = @schema.find_ns!(ns)
-          keys = {}
-          primary_sql_keys.each do |key|
-            source =  schema[:columns].find {|c| c[:name] == key }[:source]
-            keys[source] = selector[source]
-          end
+          update = @schema.save_all_pks_for_ns(ns, update, selector)
 
-          log.debug("upsert #{ns}: #{keys}")
-
-          update = keys.merge(update)
           unsafe_handle_exceptions(ns, update) do
             @sql.upsert_ns(ns, update)
           end

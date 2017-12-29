@@ -26,7 +26,7 @@ module MoSQL
     def setup_signal_handlers
       %w[TERM INT USR2].each do |sig|
         Signal.trap(sig) do
-          log.info("Got SIG#{sig}. Preparing to exit...")
+          puts("Got SIG#{sig}. Preparing to exit...")
           @streamer.stop
         end
       end
@@ -121,7 +121,7 @@ module MoSQL
     end
 
     def connect_mongo
-      @mongo = Mongo::MongoClient.from_uri(options[:mongo])
+      @mongo = Mongo::MongoClient.from_uri(options[:mongo], :pool_size => 8)
       config = @mongo['admin'].command(:ismaster => 1)
       if !config['setName'] && !options[:skip_tail]
         log.warn("`#{options[:mongo]}' is not a replset.")
