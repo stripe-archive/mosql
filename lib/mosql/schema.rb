@@ -451,7 +451,7 @@ module MoSQL
       schema[:subtables].each do |subspec|
         source = subspec[:meta][:source]
         subobjs = bson_dig_dotted(obj, source)
-        break if subobjs.nil?
+        next if subobjs.nil?
 
         subobjs.each do |subobj|
           all_transforms_for_obj(subspec, subobj,new_parent_pks, &block)
