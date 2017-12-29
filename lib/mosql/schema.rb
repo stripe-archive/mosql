@@ -305,7 +305,7 @@ module MoSQL
       pks = parent_pks.clone
       sql_pks = primary_sql_keys_for_schema(schema)
       schema[:columns].each do |col|
-        break unless sql_pks.include?(col[:name])
+        next unless sql_pks.include?(col[:name])
 
         pks[col[:name]] = bson_dig_dotted(obj, col[:source])
       end
@@ -334,7 +334,7 @@ module MoSQL
           v = transform_value(col, fetch_and_delete_dotted(obj, source))
         end
 
-        obj_description = "#{get_pks_for_debug(schema, original, parent_pks)} of #{qualified_table_name(schema[:meta])}"
+        obj_description = "#{get_pks_for_debug(schema, original, parent_pks)} of #{schema[:meta][:table]}"
         null_allowed = !col[:notnull] or col.has_key?(:default)
         if v.nil? and not null_allowed
           raise "Invalid null #{source.inspect} for #{obj_description}"
