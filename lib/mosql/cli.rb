@@ -121,8 +121,8 @@ module MoSQL
     end
 
     def connect_mongo
-      @mongo = Mongo::MongoClient.from_uri(options[:mongo])
-      config = @mongo['admin'].command(:ismaster => 1)
+      @mongo = Mongo::Client.new(options[:mongo])
+      config = @mongo.use('admin').command(:ismaster => 1).documents.first
       if !config['setName'] && !options[:skip_tail]
         log.warn("`#{options[:mongo]}' is not a replset.")
         log.warn("Will run the initial import, then stop.")

@@ -22,11 +22,11 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency "log4r"
   gem.add_runtime_dependency "json"
 
-  gem.add_runtime_dependency "mongoriver", "0.4"
+  gem.add_runtime_dependency "mongoriver", "0.5"
 
-  gem.add_runtime_dependency "mongo", "~> 1.10"
-  gem.add_runtime_dependency "bson", "~> 1.10"
-  gem.add_runtime_dependency "bson_ext", "~> 1.10"
+  gem.add_runtime_dependency "mongo", "~> 2.0"
+  gem.add_runtime_dependency "bson", "~> 4.0"
+  gem.add_runtime_dependency "bson_ext"
 
   gem.add_development_dependency "minitest"
   gem.add_development_dependency "mocha"

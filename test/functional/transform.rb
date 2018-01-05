@@ -19,7 +19,7 @@ class MoSQL::Test::Functional::TransformTest < MoSQL::Test::Functional
       'stringy'
     ],
     [
-      BSON::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000001')),
+      Mongo::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000001')).id,
       'TEXT',
       '5405fae77c584947fc000001'
     ],
@@ -41,29 +41,27 @@ class MoSQL::Test::Functional::TransformTest < MoSQL::Test::Functional
     ],
     [
       [
-        BSON::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000001')),
-        BSON::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000002'))
+        Mongo::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000001')).id,
+        Mongo::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000002')).id
       ],
       'TEXT ARRAY',
       ['5405fae77c584947fc000001', '5405fae77c584947fc000002']
     ],
     [
       [
-        BSON::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000001')),
-        BSON::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000002'))
+        Mongo::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000001')).id,
+        Mongo::DBRef.new('db.otherns', BSON::ObjectId.from_string('5405fae77c584947fc000002')).id
       ],
       'TEXT',
       ['5405fae77c584947fc000001', '5405fae77c584947fc000002'].to_json
     ],
     [
-      BSON::Binary.new(["2d931510d99f494a8c6787feb05e1594"].pack("H*"),
-        BSON::Binary::SUBTYPE_UUID),
+      BSON::Binary.new(["2d931510d99f494a8c6787feb05e1594"].pack("H*"), :uuid),
       'UUID',
       "2d931510-d99f-494a-8c67-87feb05e1594"
     ],
     [
-      BSON::Binary.new(["deadbeefcafebabe"].pack("H*"),
-        BSON::Binary::SUBTYPE_SIMPLE),
+      BSON::Binary.new(["deadbeefcafebabe"].pack("H*"), :generic),
       'BYTEA',
       ["deadbeefcafebabe"].pack("H*")
     ]
@@ -84,7 +82,7 @@ class MoSQL::Test::Functional::TransformTest < MoSQL::Test::Functional
       schema = MoSQL::Schema.new(map)
       adapter = MoSQL::SQLAdapter.new(schema, sql_test_uri)
       @sequel.drop_table?(:test_transform)
-      collection = @mongo['test']['test_transform']
+      collection = @mongo.use('test')['test_transform']
       collection.drop
 
       schema.create_schema(@sequel)
@@ -96,7 +94,7 @@ class MoSQL::Test::Functional::TransformTest < MoSQL::Test::Functional
 
       # Test initial import
       id = 'imported'
-      collection.insert({_id: id, value: mongo})
+      collection.insert_one({_id: id, value: mongo})
       streamer.initial_import
 
       got = @sequel[:test_transform].where(_id: id).to_a
@@ -104,7 +102,7 @@ class MoSQL::Test::Functional::TransformTest < MoSQL::Test::Functional
 
       # Test streaming an insert
       id = 'inserted'
-      collection.insert({_id: id, value: mongo})
+      collection.insert_one({_id: id, value: mongo})
       streamer.handle_op(
         {
           "ts" => {"t" => 1408647630, "i" => 4},
@@ -112,7 +110,7 @@ class MoSQL::Test::Functional::TransformTest < MoSQL::Test::Functional
           "v"  => 2,
           "op" => "i",
           "ns" => "test.test_transform",
-          "o"  => collection.find_one(_id: id)
+          "o"  => collection.find(_id: id).first
         })
 
       got = @sequel[:test_transform].where(_id: id).to_a

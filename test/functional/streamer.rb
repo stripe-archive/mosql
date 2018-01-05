@@ -140,8 +140,8 @@ EOF
 
       # $set's are currently a bit of a hack where we read the object
       # from the db, so make sure the new object exists in mongo
-      connect_mongo['mosql_test']['collection'].insert(o.merge('var' => 100),
-                                                       :w => 1)
+      mongo.use('mosql_test')['collection'].insert_one(o.merge('var' => 100),
+                                                               :w => 1)
 
       @streamer.handle_op({ 'ns' => 'mosql_test.collection',
                             'op' => 'u',
@@ -172,8 +172,10 @@ EOF
 
       # $set's are currently a bit of a hack where we read the object
       # from the db, so make sure the new object exists in mongo
-      connect_mongo['mosql_test']['renameid'].insert(o.merge('goats' => 0),
-                                                     :w => 1)
+      #connect_mongo['mosql_test'].insert(o.merge('goats' => 0),
+      #mongo['mosql_test'].insert_one(o.merge('goats' => 0),
+      mongo.use('mosql_test')['renameid'].insert_one(o.merge('goats' => 0),
+                                                             :w => 1)
 
       @streamer.handle_op({ 'ns' => 'mosql_test.renameid',
                             'op' => 'u',
@@ -197,9 +199,9 @@ EOF
     it 'filters unwanted records' do
       data = [{:_id => BSON::ObjectId.from_time(Time.utc(2014, 7, 1)), :var => 2},
               {:_id => BSON::ObjectId.from_time(Time.utc(2014, 7, 2)), :var => 3}]
-      collection = mongo["filter_test"]["collection"]
+      collection = mongo.use('filter_test')['collection']
       collection.drop
-      data.map { |rec| collection.insert(rec)}
+      data.map { |rec| collection.insert_one(rec)}
 
       @streamer.options[:skip_tail] = true
       @streamer.initial_import
@@ -214,14 +216,14 @@ EOF
     it 'handles "u" ops with a compsite key' do
       date = Time.utc(2014, 7, 1)
       o = {'_id' => {'s' => 'asdf', 't' => date}, 'var' => 'data'}
-      collection = mongo["composite_key_test"]["collection"]
+      collection = mongo.use('composite_key_test')['collection']
       collection.drop
-      collection.insert(o)
+      collection.insert_one(o)
 
       @streamer.options[:skip_tail] = true
       @streamer.initial_import
 
-      collection.update({ '_id' => { 's' => 'asdf', 't' => date}}, { '$set' => { 'var' => 'new_data'}})
+      collection.update_one({ '_id' => { 's' => 'asdf', 't' => date}}, { '$set' => { 'var' => 'new_data'}})
       @streamer.handle_op({'ns' => 'composite_key_test.collection',
                            'op' => 'u',
                            'o2' => { '_id' => { 's' => 'asdf', 't' => date}},
@@ -234,9 +236,9 @@ EOF
 
     it 'handles composite keys' do
       o = {'_id' => {'s' => 'asdf', 't' => Time.new}, 'var' => 'data'}
-      collection = mongo["composite_key_test"]["collection"]
+      collection = mongo.use('composite_key_test')['collection']
       collection.drop
-      collection.insert(o)
+      collection.insert_one(o)
 
       @streamer.options[:skip_tail] = true
       @streamer.initial_import
@@ -333,9 +335,9 @@ EOF
     it 'imports from all dbs' do
       ids = (1.upto(4)).map { BSON::ObjectId.new }
       ids.each_with_index do |_id, i|
-        collection = mongo["test_#{i}"]['collection']
+        collection = mongo.use("test_#{i}")['collection']
         collection.drop
-        collection.insert({:_id => _id, :var => i}, :w => 1)
+        collection.insert_one({:_id => _id, :var => i}, :w => 1)
       end
 
       @streamer.options[:skip_tail] = true
@@ -361,7 +363,7 @@ EOF
       @map = MoSQL::Schema.new(YAML.load(TIMESTAMP_MAP))
       @adapter = MoSQL::SQLAdapter.new(@map, sql_test_uri)
 
-      mongo['db']['has_timestamp'].drop
+      mongo.use('db')['has_timestamp'].drop
       @sequel.drop_table?(:has_timestamp)
       @map.create_schema(@sequel)
 
@@ -370,7 +372,7 @@ EOF
 
     it 'preserves milliseconds on import' do
       ts = Time.utc(2014, 8, 7, 6, 54, 32, 123000)
-      mongo['db']['has_timestamp'].insert({ts: ts})
+      mongo.use('db')['has_timestamp'].insert_one({ts: ts})
       @streamer.options[:skip_tail] = true
       @streamer.initial_import
 
@@ -382,7 +384,7 @@ EOF
 
     it 'preserves milliseconds on tailing' do
       ts = Time.utc(2006,01,02, 15,04,05,678000)
-      id = mongo['db']['has_timestamp'].insert({ts: ts})
+      id = mongo.use('db')['has_timestamp'].insert_one({ts: ts}).inserted_id
       @streamer.handle_op(
         {
           "ts" => {"t" => 1408647630, "i" => 4},
@@ -390,11 +392,11 @@ EOF
           "v"  => 2,
           "op" => "i",
           "ns" => "db.has_timestamp",
-          "o"  => mongo['db']['has_timestamp'].find_one({_id: id})
+          "o"  => mongo.use('db')['has_timestamp'].find({_id: id}).first
         })
       got = @sequel[:has_timestamp].where(:_id => id.to_s).select.first[:ts]
       assert_equal(ts.to_i, got.to_i)
       assert_equal(ts.tv_usec, got.tv_usec)
     end
-  end
+ end
 end

@@ -31,7 +31,7 @@ module MoSQL
 
     def collection_for_ns(ns)
       dbname, collection = ns.split(".", 2)
-      @mongo.db(dbname).collection(collection)
+      @mongo.use(dbname)[collection]
     end
 
     def unsafe_handle_exceptions(ns, obj)
@@ -114,7 +114,7 @@ module MoSQL
         end
 
         log.info("Importing for Mongo DB #{dbname}...")
-        db = @mongo.db(dbname)
+        db = @mongo.use(dbname)
         collections = db.collections.select { |c| spec.key?(c.name) }
 
         collections.each do |collection|
@@ -141,21 +141,19 @@ module MoSQL
 
       start    = Time.now
       sql_time = 0
-      collection.find(filter, :batch_size => BATCH) do |cursor|
-        with_retries do
-          cursor.each do |obj|
-            batch << @schema.transform(ns, obj)
-            count += 1
+      with_retries do
+        collection.find(filter, :batch_size => BATCH).each do |obj|
+          batch << @schema.transform(ns, obj)
+          count += 1
 
-            if batch.length >= BATCH
-              sql_time += track_time do
-                bulk_upsert(table, ns, batch)
-              end
-              elapsed = Time.now - start
-              log.info("Imported #{count} rows (#{elapsed}s, #{sql_time}s SQL)...")
-              batch.clear
-              exit(0) if @done
+          if batch.length >= BATCH
+            sql_time += track_time do
+              bulk_upsert(table, ns, batch)
             end
+            elapsed = Time.now - start
+            log.info("Imported #{count} rows (#{elapsed}s, #{sql_time}s SQL)...")
+            batch.clear
+            exit(0) if @done
           end
         end
       end
@@ -179,7 +177,7 @@ module MoSQL
     end
 
     def sync_object(ns, selector)
-      obj = collection_for_ns(ns).find_one(selector)
+      obj = collection_for_ns(ns).find(selector).limit(1).first
       if obj
         unsafe_handle_exceptions(ns, obj) do
           @sql.upsert_ns(ns, obj)

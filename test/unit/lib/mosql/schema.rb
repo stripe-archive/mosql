@@ -198,13 +198,13 @@ EOF
     it 'extracts object ids from a DBRef' do
       oid = BSON::ObjectId.new
       out = @map.transform('db.collection', {'_id' => "row 1",
-          'str' => BSON::DBRef.new('db.otherns', oid)})
+          'str' => Mongo::DBRef.new('db.otherns', oid)})
       assert_equal(["row 1", nil, oid.to_s, nil], out)
     end
 
     it 'converts DBRef to object id in arrays' do
       oid = [ BSON::ObjectId.new, BSON::ObjectId.new]
-      o = {'_id' => "row 1", "str" => [ BSON::DBRef.new('db.otherns', oid[0]), BSON::DBRef.new('db.otherns', oid[1]) ] }
+      o = {'_id' => "row 1", "str" => [ Mongo::DBRef.new('db.otherns', oid[0]), Mongo::DBRef.new('db.otherns', oid[1]) ] }
       out = @map.transform('db.collection', o)
       assert_equal(["row 1", nil, JSON.dump(oid.map! {|o| o.to_s}), nil ], out)
     end
@@ -219,8 +219,8 @@ EOF
     it 'base64-encodes BSON::Binary blobs in extra_props' do
       out = @map.transform('db.with_extra_props',
         {'_id' => 7,
-          'blob' => BSON::Binary.new("\x00\x00\x00"),
-          'embedded' => {'thing' => BSON::Binary.new("\x00\x00\x00")}})
+          'blob' => BSON::Binary.new("\x00\x00\x00", :generic),
+          'embedded' => {'thing' => BSON::Binary.new("\x00\x00\x00", :generic)}})
       extra = JSON.parse(out[1])
       assert(extra.key?('blob'))
       assert_equal('AAAA', extra['blob'].strip)
