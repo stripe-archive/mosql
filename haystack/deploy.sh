@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -x
 echo 'hello world'
 pg_user='ketan'
 pg_pwd='f6JF=Uv9fXbMxS'
