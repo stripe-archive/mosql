@@ -14,7 +14,7 @@ cat etc/init/mosql-init.conf.template | sed 's/##pg_user##/'"$pg_user"'/g; s/##p
 > etc/init/mosql-init.conf
 
 sudo mkdir -p /etc/init
-sudo cp mosql-init.conf /etc/init
+sudo cp etc/init/mosql-init.conf /etc/init
 
 sudo initctl start mosql-init
 sudo initctl status mosql-init
