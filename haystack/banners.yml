@@ -1,0 +1,33 @@
+haystackdb:
+  banners:
+    :columns:
+    - id:
+      :source: _id
+      :type: TEXT
+    - tscreated:
+      :source: tsCreated
+      :type: TIMESTAMP
+    - tsexpire:
+      :source: tsExpire
+      :type: TIMESTAMP
+    - tsupdated:
+      :source: tsUpdated
+      :type: TIMESTAMP
+    - title:
+      :source: title
+      :type: TEXT
+    - bannertype:
+      :source: type
+      :type: TEXT
+    - subtype:
+      :source: subtype
+      :type: TEXT
+    - url:
+      :source: streamUrl
+      :type: TEXT
+    - switchtochannel:
+      :source: switchToChannel
+      :type: TEXT
+    :meta:
+      :table: banners
+      :extra_props: false
