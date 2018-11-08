@@ -1,4 +1,10 @@
 #!/bin/bash
+if [ $# -lt 1 ]; then
+    echo "Your command line contains $# arguments"
+    echo "Use $0 [dir_name]"
+    exit 0
+fi
+service_name=$1
 set -x
 echo 'hello world'
 pg_user='ketan'
@@ -7,10 +13,7 @@ pg_url='test-dashboard.cgqtgkpz8uca.us-east-1.rds.amazonaws.com'
 mongo_user='oploguser'
 mongo_pwd='53r5rIn74ocjrwNs'
 mongo_url='SG-haystackdbec2-1717.servers.mongodirector.com'
-yml_dir='mosql-gem\/haystack\/events'
-service_name='events'
-
-git clone git@bitbucket.org:KetanRathod/mosql-gem.git /home/ec2-user/mosql-gem
+yml_dir="mosql-gem\/haystack\/$service_name"
 
 cat etc/init/mosql-init.conf.template | sed 's/##pg_user##/'"$pg_user"'/g; s/##pg_pwd##/'"$pg_pwd"'/g; ' \
 | sed 's/##pg_url##/'"$pg_url"'/g; s/##mongo_user##/'"$mongo_user"'/g; ' \
