@@ -7,8 +7,8 @@ pg_url='test-dashboard.cgqtgkpz8uca.us-east-1.rds.amazonaws.com'
 mongo_user='oploguser'
 mongo_pwd='53r5rIn74ocjrwNs'
 mongo_url='xxSG-haystackdbec2-1717.servers.mongodirector.com'
-yml_dir='mosql-gem\/mosql_1'
-service_name='mosql_1'
+yml_dir='mosql-gem\/events'
+service_name='events'
 
 git clone git@bitbucket.org:KetanRathod/mosql-gem.git /home/ec2-user/mosql-gem
 
