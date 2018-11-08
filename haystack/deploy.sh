@@ -7,6 +7,8 @@ fi
 service_name=$1
 set -x
 echo 'hello world'
+
+# TEST CREDENTIALS
 pg_user='ketan'
 pg_pwd='f6JF=Uv9fXbMxS'
 pg_url='test-dashboard.cgqtgkpz8uca.us-east-1.rds.amazonaws.com'
@@ -14,6 +16,15 @@ mongo_user='oploguser'
 mongo_pwd='53r5rIn74ocjrwNs'
 mongo_url='SG-haystackdbec2-1717.servers.mongodirector.com'
 yml_dir="mosql-gem\/haystack\/$service_name"
+
+# PROD CREDENTIALS
+# pg_user='haystack'
+# pg_pwd='z70jo8CaIfe9EmWL'
+# pg_url='dashboarddbinstance.cgqtgkpz8uca.us-east-1.rds.amazonaws.com'
+# mongo_user='oploguser'
+# mongo_pwd='53r5rIn74ocjrwNs'
+# mongo_url='SG-haystackdbec2-1717.servers.mongodirector.com'
+# yml_dir="mosql-gem\/haystack\/$service_name"
 
 cat etc/init/mosql-init.conf.template | sed 's/##pg_user##/'"$pg_user"'/g; s/##pg_pwd##/'"$pg_pwd"'/g; ' \
 | sed 's/##pg_url##/'"$pg_url"'/g; s/##mongo_user##/'"$mongo_user"'/g; ' \
