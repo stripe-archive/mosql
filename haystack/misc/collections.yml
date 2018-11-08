@@ -155,68 +155,6 @@ haystackdb:
       :table: channels
       :extra_props: true
 
-  playlists:
-    :columns:
-    - id:
-      :source: _id
-      :type: NUMERIC
-    - userid:
-      :source: userid
-      :type: TEXT
-    - createdat:
-      :source: createdAt
-      :type: TIMESTAMP
-    - category:
-      :source: category
-      :type: TEXT
-    - clientos:
-      :source: clientOs
-      :type: TEXT
-    - abflags:
-      :source: abFlags
-      :type: TEXT ARRAY
-    - inactive:
-      :source: inactive
-      :type: BOOLEAN
-    - chromecastplaylist:
-      :source: chromecastplaylist
-      :type: BOOLEAN
-    - tvplaylist:
-      :source: tvplaylist
-      :type: BOOLEAN
-    - firstvideo:
-      :source: firstVideo
-      :type: BOOLEAN
-    - linearchannel:
-      :source: linearChannel
-      :type: BOOLEAN
-    - anonymous:
-      :source: anonymous
-      :type: BOOLEAN
-    - streamsjson:
-      :source: streams
-      :type: JSON
-    - userstats:
-      :source: userstats
-      :type: JSON    
-    - ndcg10:
-      :source: performance.ndcg10
-      :type: FLOAT
-    - dcg:
-      :source: performance.dcg
-      :type: FLOAT
-    - precision10:
-      :source: performance.precision10
-      :type: FLOAT
-    - numwatched:
-      :source: performance.numWatched
-      :type: INTEGER
-    - lastinteractionindex:
-      :source: performance.lastInteractionIndex
-      :type: INTEGER
-    :meta:
-      :table: playlists
-
   streams:
     :columns:
     - id:
@@ -508,3 +446,49 @@ haystackdb:
     :meta:
       :table: banners
       :extra_props: false
+
+  events:
+    :columns:
+    - id:
+      :source: _id
+      :type: TEXT
+    - userid:
+      :source: hsUserId
+      :type: TEXT
+    - action:
+      :source: action
+      :type: TEXT
+    - url:
+      :source: streamUrl
+      :type: TEXT
+    - secondswatched:
+      :source: secondsWatched
+      :type: FLOAT
+    - playlistid:
+      :source: playlistId
+      :type: NUMERIC
+    - pushtype:
+      :source: pushType
+      :type: TEXT
+    - param1:
+      :source: param1
+      :type: TEXT
+    - param2:
+      :source: param2
+      :type: TEXT
+    - param3:
+      :source: param3
+      :type: TEXT ARRAY
+    - clientos:
+      :source: clientOs
+      :type: TEXT
+    - clientversion:
+      :source: clientVersion
+      :type: FLOAT
+    - createdat:
+      :source: createdAt
+      :type: TIMESTAMP
+    :meta:
+      :table: events
+      :extra_props: false
+
