@@ -10,6 +10,8 @@ mongo_url='xxSG-haystackdbec2-1717.servers.mongodirector.com'
 yml_dir='mosql-gem\/mosql_1'
 service_name='mosql_1'
 
+git clone git@bitbucket.org:KetanRathod/mosql-gem.git /home/ec2-user/mosql-gem
+
 cat etc/init/mosql-init.conf.template | sed 's/##pg_user##/'"$pg_user"'/g; s/##pg_pwd##/'"$pg_pwd"'/g; ' \
 | sed 's/##pg_url##/'"$pg_url"'/g; s/##mongo_user##/'"$mongo_user"'/g; ' \
 | sed 's/##mongo_pwd##/'"$mongo_pwd"'/g; s/##mongo_url##/'"$mongo_url"'/g; ' \
@@ -19,6 +21,6 @@ cat etc/init/mosql-init.conf.template | sed 's/##pg_user##/'"$pg_user"'/g; s/##p
 sudo mkdir -p /etc/init
 sudo cp etc/init/mosql-init.conf /etc/init
 
-sudo initctl start mosql-init
+# sudo initctl start mosql-init
 sudo initctl status mosql-init
 

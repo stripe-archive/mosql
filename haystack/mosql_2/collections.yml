@@ -1,0 +1,510 @@
+haystackdb:
+  users:
+    :columns:
+    - id:
+      :source: _id
+      :type: TEXT
+    - userid:
+      :source: userid
+      :type: TEXT
+    - email:
+      :source: email
+      :type: TEXT
+    - devices:
+      :source: devices
+      :type: JSON
+    - mutedtags:
+      :source: mutedTags
+      :type: TEXT ARRAY
+    - preferredchannels:
+      :source: preferredChannels
+      :type: TEXT ARRAY
+    - mutedchannels:
+      :source: mutedChannels
+      :type: TEXT ARRAY
+    - headlinecategories:
+      :source:  headlineCategories
+      :type: TEXT ARRAY
+    - timezone:
+      :source: timeZone
+      :type: FLOAT
+    - pushcount:
+      :source: pushCount
+      :type: INTEGER
+    - createdfromos:
+      :source: createdFromOs
+      :type: TEXT
+    - createdfromversion:
+      :source: createdFromVersion
+      :type: FLOAT
+    - firstip:
+      :source: firstIP
+      :type: TEXT
+    - lastlogon:
+      :source: lastLogon
+      :type: TIMESTAMP
+    - abflags:
+      :source: abFlags
+      :type: TEXT ARRAY
+    - tslastpush:
+      :source: tsLastPush
+      :type: TIMESTAMP
+    - activehours:
+      :source: stats.activeHours
+      :type: INTEGER ARRAY
+    - geo:
+      :source: geo
+      :type: JSON
+    - emailsettings:
+      :source: emailSettings
+      :type: TEXT ARRAY
+    - tslastw1feedbackemail:
+      :source: tsLastEmail.w1Feedback
+      :type: TIMESTAMP
+    - tslastwelcomeemail:
+      :source: tsLastEmail.welcome
+      :type: TIMESTAMP
+    - tslastdigestemail:
+      :source: tsLastEmail.digest
+      :type: TIMESTAMP
+    - tslastinactiveemail:
+      :source: tsLastEmail.inactive
+      :type: TIMESTAMP
+    - tslastoverallemail:
+      :source: tsLastEmail.overall
+      :type: TIMESTAMP
+    - tslastemailopened:
+      :source: tsLastEmailAction.opened
+      :type: TIMESTAMP
+    - tslastemailunsubscribed:
+      :source: tsLastEmailAction.unsubscribed
+      :type: TIMESTAMP
+    - tslastemailbounced:
+      :source: tsLastEmailAction.bounced
+      :type: TIMESTAMP
+    - createdat:
+      :source: createdAt
+      :type: TIMESTAMP
+    - favorites:
+      :source: favorites
+      :type: TEXT ARRAY
+    - engagementpushstrategy:
+      :source: engagementPushStrategy
+      :type: TEXT
+    - pushsettings:
+      :source: pushSettings
+      :type: TEXT ARRAY
+    - pscoreupdatefunctions:
+      :source: pScoreUpdateFunctions
+      :type: TEXT ARRAY
+    - authorscores:
+      :source: stats.authorScores
+      :type: JSON
+    - totalvideos:
+      :source: stats.totalVideos
+      :type: INTEGER
+    - totalseconds:
+      :source: stats.totalSeconds
+      :type: FLOAT
+    :meta:
+      :table: users
+      :extra_props: true
+
+  channels:
+    :columns:
+    - id:
+      :source: _id
+      :type: TEXT
+    - site:
+      :source: site
+      :type: TEXT
+    - name:
+      :source: name
+      :type: TEXT
+    - categories:
+      :source: categories
+      :type: TEXT ARRAY
+    - defaultscore:
+      :source: defaultScore
+      :type: FLOAT
+    - hashtags:
+      :source: hashtags
+      :type: TEXT ARRAY
+    - metroradius:
+      :source: metroRadius
+      :type: FLOAT
+    - dfppublisher:
+      :source: dfpPublisher
+      :type: TEXT
+    - adprovider:
+      :source: adProvider
+      :type: TEXT
+    - corporate:
+      :source: corporate
+      :type: TEXT
+    - mrssfeed:
+      :source: mrssFeed
+      :type: TEXT
+    - hsdma:
+      :source: hsDma
+      :type: TEXT
+    - crawlyt:
+      :source: crawlYT
+      :type: BOOLEAN
+    :meta:
+      :table: channels
+      :extra_props: true
+
+  playlists:
+    :columns:
+    - id:
+      :source: _id
+      :type: NUMERIC
+    - userid:
+      :source: userid
+      :type: TEXT
+    - createdat:
+      :source: createdAt
+      :type: TIMESTAMP
+    - category:
+      :source: category
+      :type: TEXT
+    - clientos:
+      :source: clientOs
+      :type: TEXT
+    - abflags:
+      :source: abFlags
+      :type: TEXT ARRAY
+    - inactive:
+      :source: inactive
+      :type: BOOLEAN
+    - chromecastplaylist:
+      :source: chromecastplaylist
+      :type: BOOLEAN
+    - tvplaylist:
+      :source: tvplaylist
+      :type: BOOLEAN
+    - firstvideo:
+      :source: firstVideo
+      :type: BOOLEAN
+    - linearchannel:
+      :source: linearChannel
+      :type: BOOLEAN
+    - anonymous:
+      :source: anonymous
+      :type: BOOLEAN
+    - streamsjson:
+      :source: streams
+      :type: JSON
+    - userstats:
+      :source: userstats
+      :type: JSON    
+    - ndcg10:
+      :source: performance.ndcg10
+      :type: FLOAT
+    - dcg:
+      :source: performance.dcg
+      :type: FLOAT
+    - precision10:
+      :source: performance.precision10
+      :type: FLOAT
+    - numwatched:
+      :source: performance.numWatched
+      :type: INTEGER
+    - lastinteractionindex:
+      :source: performance.lastInteractionIndex
+      :type: INTEGER
+    :meta:
+      :table: playlists
+
+  streams:
+    :columns:
+    - id:
+      :source: _id
+      :type: TEXT
+    - site:
+      :source: site
+      :type: TEXT
+    - url:
+      :source: sourceUrl
+      :type: TEXT
+    - numviewers:
+      :source: numViewers
+      :type: BIGINT
+    - totalviewers:
+      :source: totViewers
+      :type: BIGINT
+    - fbshares:
+      :source: fbshares
+      :type: BIGINT
+    - publisheddate:
+      :source: publishedDate
+      :type: TIMESTAMP
+    - popularityscore:
+      :source: popularityScore
+      :type: FLOAT
+    - category:
+      :source: category
+      :type: TEXT
+    - categories:
+      :source: categories
+      :type: TEXT ARRAY
+    - partnercategories:
+      :source: partnerCategory
+      :type: TEXT ARRAY
+    - keywords:
+      :source: keywords
+      :type: TEXT ARRAY
+    - tags:
+      :source: tags
+      :type: JSON
+    - nertags:
+      :source: nerTags
+      :type: JSON
+    - haystacktags:
+      :source: haystackTags
+      :type: JSON
+    - videotypeflags:
+      :source:  videoTypeFlags
+      :type: JSON
+    - author:
+      :source: author
+      :type: TEXT
+    - show:
+      :source: show
+      :type: TEXT
+    - trackedchannel:
+      :source: trackedChannel
+      :type: BOOLEAN
+    - language:
+      :source: lang
+      :type: TEXT
+    - regionrestriction:
+      :source: regionRestriction
+      :type: TEXT
+    - duration:
+      :source: duration
+      :type: FLOAT
+    - editorialscoreoverwrite:
+      :source: editorial.scoreOverwrite
+      :type: TEXT
+    - editorialnotes:
+      :source: editorial.notes
+      :type: TEXT
+    - editoriallastupdated:
+      :source:  editorial.lastUpdated
+      :type: TIMESTAMP
+    - weeklydigest:
+      :source:  editorial.weeklyDigest
+      :type: BOOLEAN
+    - localboost:
+      :source:  editorial.localBoost
+      :type: BOOLEAN
+    - leanback:
+      :source: videoAnalysis.lean_back
+      :type: BOOLEAN
+    - status:
+      :source: status
+      :type: TEXT
+    - slug:
+      :source: slug
+      :type: TEXT
+    - thumbnail:
+      :source: thumbnail
+      :type: JSON
+    - mediafiles:
+      :source: mediaFiles
+      :type: JSON
+    - location:
+      :source: location
+      :type: JSON
+    - downloadurl:
+      :source: downloadUrl
+      :type: JSON
+    - videoanalysis:
+      :source: videoAnalysis
+      :type: JSON
+    :meta:
+      :table: streams
+      :extra_props: false
+
+  pushnotifications:
+    :columns:
+    - id:
+      :source: _id
+      :type: TEXT
+    - url:
+      :source: streamUrl
+      :type: TEXT
+    - pushtype:
+      :source: pushType
+      :type: TEXT
+    - createdat:
+      :source: createdAt
+      :type: TIMESTAMP
+    - categories:
+      :source: categories
+      :type: TEXT ARRAY
+    - tags:
+      :source: tags
+      :type: TEXT ARRAY
+    - platforms:
+      :source: platforms
+      :type: TEXT ARRAY
+    - flags:
+      :source: flags
+      :type: TEXT ARRAY
+    - lastupdated:
+      :source: lastUpdated
+      :type: TIMESTAMP
+    - sentcount:
+      :source: sentCount
+      :type: INTEGER
+    - openedcount:
+      :source: openedCount
+      :type: INTEGER
+    :meta:
+      :table: pushnotifications
+
+  ads:
+    :columns:
+    - id:
+      :source: _id
+      :type: TEXT
+    - adpodid:
+      :source: adPodId
+      :type: TEXT
+    - createdat:
+      :source: createdAt
+      :type: TIMESTAMP
+    - tsstart:
+      :source: tsStart
+      :type: TIMESTAMP
+    - tscomplete:
+      :source: tsComplete
+      :type: TIMESTAMP
+    - streamurl:
+      :source: streamUrl
+      :type: TEXT
+    - adurl:
+      :source: adUrl
+      :type: TEXT
+    - userid:
+      :source: userid
+      :type: TEXT
+    - playlistid:
+      :source: playlistId
+      :type: TEXT
+    - deviceid:
+      :source: deviceId
+      :type: TEXT
+    - clientos:
+      :source: clientOs
+      :type: TEXT
+    - clientversion:
+      :source: clientVersion
+      :type: FLOAT
+    - adprovider:
+      :source: adProvider
+      :type: TEXT
+    - adxchange:
+      :source: adXchange
+      :type: TEXT
+    - dfpid:
+      :source: dfpId
+      :type: TEXT
+    - title:
+      :source: title
+      :type: TEXT
+    - system:
+      :source: system
+      :type: TEXT
+    - description:
+      :source: description
+      :type: TEXT
+    - duration:
+      :source: duration
+      :type: FLOAT
+    :meta:
+      :table: ads
+
+  adrevenues:
+    :columns:
+    - id:
+      :source: _id
+      :type: TEXT
+    - adprovider:
+      :source: adProvider
+      :type: TEXT
+    - month:
+      :source: month
+      :type: INTEGER
+    - year:
+      :source: year
+      :type: INTEGER
+    - grossrevenue:
+      :source: grossRevenue
+      :type: FLOAT
+    - netrevenue:
+      :source: netRevenue
+      :type: FLOAT
+    - receivedrevenue:
+      :source: receivedRevenue
+      :type: FLOAT
+    - receiveddate:
+      :source: receivedDate
+      :type: TIMESTAMP
+    - adimpressions:
+      :source: adImpressions
+      :type: INTEGER
+    - adrequests:
+      :source: adRequests
+      :type: INTEGER
+    - adsavailable:
+      :source: adsAvailable
+      :type: INTEGER
+    - fillrate:
+      :source: fillRate
+      :type: FLOAT
+    - cpm:
+      :source: CPM
+      :type: FLOAT
+    - tsupdated:
+      :source: tsUpdated
+      :type: TIMESTAMP
+    :meta:
+      :table: adrevenues
+      :extra_props: true
+
+  banners:
+    :columns:
+    - id:
+      :source: _id
+      :type: TEXT
+    - tscreated:
+      :source: tsCreated
+      :type: TIMESTAMP
+    - tsexpire:
+      :source: tsExpire
+      :type: TIMESTAMP
+    - tsupdated:
+      :source: tsUpdated
+      :type: TIMESTAMP
+    - title:
+      :source: title
+      :type: TEXT
+    - bannertype:
+      :source: type
+      :type: TEXT
+    - subtype:
+      :source: subtype
+      :type: TEXT
+    - url:
+      :source: streamUrl
+      :type: TEXT
+    - switchtochannel:
+      :source: switchToChannel
+      :type: TEXT
+    :meta:
+      :table: banners
+      :extra_props: false
