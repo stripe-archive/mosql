@@ -42,6 +42,7 @@ module MoSQL
         if wrapped.result && options[:unsafe]
           log.warn("Ignoring row (#{obj.inspect}): #{e}")
         else
+          log.error("Erroring row (#{obj.inspect}): #{e}")
           log.error("Error processing #{obj.inspect} for #{ns}.")
           raise e
         end
