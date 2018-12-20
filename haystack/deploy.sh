@@ -23,7 +23,7 @@ yml_dir="mosql-gem\/haystack\/$service_name"
 # pg_url='dashboarddbinstance.cgqtgkpz8uca.us-east-1.rds.amazonaws.com'
 # mongo_user='oploguser'
 # mongo_pwd='53r5rIn74ocjrwNs'
-# mongo_url='SG-haystackdbec2-1717.servers.mongodirector.com'
+# mongo_url='SG-haystackdbec2-1717.servers.mongodirector.com,SG-haystackdbec2-1716.servers.mongodirector.com'
 # yml_dir="mosql-gem\/haystack\/$service_name"
 
 cat etc/init/mosql-init.conf.template | sed 's/##pg_user##/'"$pg_user"'/g; s/##pg_pwd##/'"$pg_pwd"'/g; ' \
