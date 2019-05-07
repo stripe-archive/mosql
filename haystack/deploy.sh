@@ -9,8 +9,8 @@ set -x
 echo 'hello world'
 
 # TEST CREDENTIALS
-pg_user='ketan'
-pg_pwd='f6JF=Uv9fXbMxS'
+pg_user='mosqluser'
+pg_pwd='hzMzH2wnax9gTeY5'
 pg_url='test-dashboard.cgqtgkpz8uca.us-east-1.rds.amazonaws.com'
 mongo_user='oploguser'
 mongo_pwd='53r5rIn74ocjrwNs'
@@ -18,8 +18,8 @@ mongo_url='SG-haystackdbec2-1717.servers.mongodirector.com'
 yml_dir="mosql-gem\/haystack\/$service_name"
 
 # PROD CREDENTIALS
-# pg_user='haystack'
-# pg_pwd='z70jo8CaIfe9EmWL'
+# pg_user='mosqluser'
+# pg_pwd='hzMzH2wnax9gTeY5'
 # pg_url='dashboarddbinstance.cgqtgkpz8uca.us-east-1.rds.amazonaws.com'
 # mongo_user='oploguser'
 # mongo_pwd='53r5rIn74ocjrwNs'
