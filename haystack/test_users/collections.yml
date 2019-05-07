@@ -1,112 +1,46 @@
 haystackdb:
-  users:
+  channels:
     :columns:
     - id:
       :source: _id
       :type: TEXT
-    - userid:
-      :source: userid
+    - site:
+      :source: site
       :type: TEXT
-    - email:
-      :source: email
+    - name:
+      :source: name
       :type: TEXT
-    - devices:
-      :source: devices
-      :type: JSON
-    - mutedtags:
-      :source: mutedTags
+    - categories:
+      :source: categories
       :type: TEXT ARRAY
-    - preferredchannels:
-      :source: preferredChannels
-      :type: TEXT ARRAY
-    - mutedchannels:
-      :source: mutedChannels
-      :type: TEXT ARRAY
-    - headlinecategories:
-      :source:  headlineCategories
-      :type: TEXT ARRAY
-    - timezone:
-      :source: timeZone
+    - defaultscore:
+      :source: defaultScore
       :type: FLOAT
-    - pushcount:
-      :source: pushCount
-      :type: INTEGER
-    - createdfromos:
-      :source: createdFromOs
-      :type: TEXT
-    - createdfromversion:
-      :source: createdFromVersion
+    - hashtags:
+      :source: hashtags
+      :type: TEXT ARRAY
+    - metroradius:
+      :source: metroRadius
       :type: FLOAT
-    - firstip:
-      :source: firstIP
+    - dfppublisher:
+      :source: dfpPublisher
       :type: TEXT
-    - lastlogon:
-      :source: lastLogon
-      :type: TIMESTAMP
-    - abflags:
-      :source: abFlags
-      :type: TEXT ARRAY
-    - tslastpush:
-      :source: tsLastPush
-      :type: TIMESTAMP
-    - activehours:
-      :source: stats.activeHours
-      :type: INTEGER ARRAY
-    - geo:
-      :source: geo
-      :type: JSON
-    - emailsettings:
-      :source: emailSettings
-      :type: TEXT ARRAY
-    - tslastw1feedbackemail:
-      :source: tsLastEmail.w1Feedback
-      :type: TIMESTAMP
-    - tslastwelcomeemail:
-      :source: tsLastEmail.welcome
-      :type: TIMESTAMP
-    - tslastdigestemail:
-      :source: tsLastEmail.digest
-      :type: TIMESTAMP
-    - tslastinactiveemail:
-      :source: tsLastEmail.inactive
-      :type: TIMESTAMP
-    - tslastoverallemail:
-      :source: tsLastEmail.overall
-      :type: TIMESTAMP
-    - tslastemailopened:
-      :source: tsLastEmailAction.opened
-      :type: TIMESTAMP
-    - tslastemailunsubscribed:
-      :source: tsLastEmailAction.unsubscribed
-      :type: TIMESTAMP
-    - tslastemailbounced:
-      :source: tsLastEmailAction.bounced
-      :type: TIMESTAMP
-    - createdat:
-      :source: createdAt
-      :type: TIMESTAMP
-    - favorites:
-      :source: favorites
-      :type: TEXT ARRAY
-    - engagementpushstrategy:
-      :source: engagementPushStrategy
+    - adprovider:
+      :source: adProvider
       :type: TEXT
-    - pushsettings:
-      :source: pushSettings
-      :type: TEXT ARRAY
-    - pscoreupdatefunctions:
-      :source: pScoreUpdateFunctions
-      :type: TEXT ARRAY
-    - authorscores:
-      :source: stats.authorScores
-      :type: JSON
-    - totalvideos:
-      :source: stats.totalVideos
-      :type: INTEGER
-    - totalseconds:
-      :source: stats.totalSeconds
-      :type: FLOAT
+    - corporate:
+      :source: corporate
+      :type: TEXT
+    - mrssfeed:
+      :source: mrssFeed
+      :type: TEXT
+    - hsdma:
+      :source: hsDma
+      :type: TEXT
+    - crawlyt:
+      :source: crawlYT
+      :type: BOOLEAN
     :meta:
-      :table: users
+      :table: channels
       :extra_props: true
 
