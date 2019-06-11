@@ -64,8 +64,6 @@ module MoSQL
           raise e unless self.class.duplicate_key_error?(e)
           log.info("RACE during upsert: Upserting #{item} into #{table}: #{e}")
         end
-      elsif rows == 1
-        log.info("Updated #{rows} = 1 rows: query:#{query}, table:#{table} item:#{item}")
       elsif rows > 1
         log.warn("Huh? Updated #{rows} > 1 rows: upsert(#{table}, #{item})")
       end
