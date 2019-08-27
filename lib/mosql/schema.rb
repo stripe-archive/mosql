@@ -209,7 +209,7 @@ module MoSQL
 
       # Do a deep clone, because we're potentially going to be
       # mutating embedded objects.
-      obj = BSON.deserialize(BSON.serialize(obj))
+      obj = BSON.deserialize(BSON::BSON_CODER.serialize(obj, false, false, 16*1024*1024))
 
       row = []
       schema[:columns].each do |col|
@@ -308,19 +308,19 @@ module MoSQL
     def quote_copy(val)
       case val
       when nil
-        "\\N"
+        "\\N".encode('UTF-8')
       when true
-        't'
+        't'.encode('UTF-8')
       when false
-        'f'
+        'f'.encode('UTF-8')
       when Sequel::SQL::Function
         nil
       when DateTime, Time
-        val.strftime("%FT%T.%6N %z")
+        val.strftime("%FT%T.%6N %z").encode('UTF-8')
       when Sequel::SQL::Blob
-        "\\\\x" + [val].pack("h*")
+        "\\\\x" + [val].pack("h*").encode('UTF-8')
       else
-        val.to_s.gsub(/([\\\t\n\r])/, '\\\\\\1')
+        val.to_s.encode('UTF-8', 'UTF-8', :invalid => :replace).gsub(/([\\\t\n\r])/, '\\\\\\1')
       end
     end
 

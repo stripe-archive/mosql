@@ -133,6 +133,7 @@ module MoSQL
     end
 
     def connect_sql
+      puts "options: #{options}"
       @sql = MoSQL::SQLAdapter.new(@schema, options[:sql], options[:schema])
       if options[:verbose] >= 2
         @sql.db.sql_log_level = :debug
@@ -156,7 +157,7 @@ module MoSQL
       load_collections
       connect_sql
       connect_mongo
-
+      sleep 5
       metadata_table = MoSQL::Tailer.create_table(@sql.db, 'mosql_tailers')
 
       @tailer = MoSQL::Tailer.new([@mongo], :existing, metadata_table,
