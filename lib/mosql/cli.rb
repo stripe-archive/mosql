@@ -183,6 +183,7 @@ module MoSQL
         end
       else
         @streamer.import_schema
+      end
     end
   end
 end
