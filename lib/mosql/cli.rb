@@ -91,6 +91,10 @@ module MoSQL
           @options[:skip_import] = true
         end
 
+        opts.on("--schema-only", "Only import schema without data") do
+          @options[:schema_only] = true
+        end
+
         opts.on("--reimport", "Force a data re-import") do
           @options[:reimport] = true
         end
@@ -169,13 +173,16 @@ module MoSQL
                                :sql     => @sql,
                                :schema  => @schema)
 
-      unless options[:skip_import]
-        @streamer.import
-      end
+      unless options[:schema_only]
+        unless options[:skip_import]
+          @streamer.import
+        end
 
-      unless options[:skip_tail]
-        @streamer.optail
-      end
+        unless options[:skip_tail]
+          @streamer.optail
+        end
+      else
+        @streamer.import_schema
     end
   end
 end

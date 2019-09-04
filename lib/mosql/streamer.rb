@@ -29,6 +29,10 @@ module MoSQL
       end
     end
 
+    def import_schema
+      @schema.create_schema(@sql.db, !options[:no_drop_tables])
+    end
+
     def collection_for_ns(ns)
       dbname, collection = ns.split(".", 2)
       @mongo.db(dbname).collection(collection)
