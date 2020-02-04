@@ -58,6 +58,9 @@ haystackdb:
     - lastinteractionindex:
       :source: performance.lastInteractionIndex
       :type: INTEGER
+    - campaigndata:
+      :source: campaign_data
+      :type: JSON    
     :meta:
       :table: playlists
 
