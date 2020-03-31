@@ -87,6 +87,10 @@ module MoSQL
           @options[:skip_tail] = true
         end
 
+        opts.on("--skip-import", "Don't import data before tailing oplog") do
+          @options[:skip_import] = true
+        end
+
         opts.on("--reimport", "Force a data re-import") do
           @options[:reimport] = true
         end
@@ -97,6 +101,11 @@ module MoSQL
 
         opts.on("--unsafe", "Ignore rows that cause errors on insert") do
           @options[:unsafe] = true
+        end
+
+        # eg, --oplog-filter '{"ns": {"$regex": "^somedb[0-9]*\\.collection$"}}'
+        opts.on("--oplog-filter [filter]", "An additional JSON filter for the oplog query") do |filter|
+          @options[:oplog_filter] = JSON.parse(filter)
         end
       end
 
@@ -159,7 +168,9 @@ module MoSQL
                                :sql     => @sql,
                                :schema  => @schema)
 
-      @streamer.import
+      unless options[:skip_import]
+        @streamer.import
+      end
 
       unless options[:skip_tail]
         @streamer.optail

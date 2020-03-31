@@ -16,9 +16,17 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = MoSQL::VERSION
 
-  %w[sequel pg mongo bson_ext rake log4r json
-     ].each { |dep| gem.add_runtime_dependency(dep) }
-  gem.add_runtime_dependency "mongoriver", "0.4.2"
+  gem.add_runtime_dependency "sequel"
+  gem.add_runtime_dependency "pg"
+  gem.add_runtime_dependency "rake"
+  gem.add_runtime_dependency "log4r"
+  gem.add_runtime_dependency "json"
+
+  gem.add_runtime_dependency "mongoriver", "0.4"
+
+  gem.add_runtime_dependency "mongo", "~> 1.10"
+  gem.add_runtime_dependency "bson", "~> 1.10"
+  gem.add_runtime_dependency "bson_ext", "~> 1.10"
 
   gem.add_development_dependency "minitest"
   gem.add_development_dependency "mocha"

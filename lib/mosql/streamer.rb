@@ -46,6 +46,7 @@ module MoSQL
         if wrapped.result && options[:unsafe]
           log.warn("Ignoring row (#{obj.inspect}): #{e}")
         else
+          log.error("Erroring row (#{obj.inspect}): #{e}")
           log.error("Error processing #{obj.inspect} for #{ns}.")
           raise e
         end
@@ -206,14 +207,7 @@ module MoSQL
           @sql.upsert_ns(ns, obj)
         end
       else
-        primary_sql_keys = @schema.primary_sql_key_for_ns(ns)
-        schema = @schema.find_ns!(ns)
-        query = {}
-        primary_sql_keys.each do |key|
-          source =  schema[:columns].find {|c| c[:name] == key }[:source]
-          query[key] = selector[source]
-        end
-        @sql.table_for_ns(ns).where(query).delete()
+        @sql.delete_ns(ns, selector)
       end
     end
 
@@ -295,7 +289,7 @@ module MoSQL
           keys = {}
           primary_sql_keys.each do |key|
             source =  schema[:columns].find {|c| c[:name] == key }[:source]
-            keys[key] = selector[source]
+            keys[source] = selector[source]
           end
 
           log.debug("upsert #{ns}: #{keys}")

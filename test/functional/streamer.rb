@@ -95,6 +95,18 @@ EOF
       assert_equal(27, sequel[:sqltable].where(:_id => o['_id'].to_s).select.first[:var])
     end
 
+    it 'handle "u" ops without _id and a renamed _id mapping' do
+      o = { '_id' => BSON::ObjectId.new, 'var' => 17 }
+      @adapter.upsert_ns('mosql_test.renameid', o)
+
+      @streamer.handle_op({ 'ns' => 'mosql_test.renameid',
+                            'op' => 'u',
+                            'o2' => { '_id' => o['_id'] },
+                            'o'  => { 'goats' => 27 }
+                          })
+      assert_equal(27, sequel[:sqltable2].where(:id => o['_id'].to_s).select.first[:goats])
+    end
+
     it 'applies ops performed via applyOps' do
       o = { '_id' => BSON::ObjectId.new, 'var' => 17 }
       @adapter.upsert_ns('mosql_test.collection', o)
@@ -137,6 +149,21 @@ EOF
                             'o'  => { '$set' => { 'var' => 100 } },
                           })
       assert_equal(100, sequel[:sqltable].where(:_id => o['_id'].to_s).select.first[:var])
+    end
+
+    it 'handle "u" ops with $set, BSON::ObjectID, and a deleted row' do
+      o = { '_id' => BSON::ObjectId.new, 'var' => 17 }
+      @adapter.upsert_ns('mosql_test.collection', o)
+
+      # Don't store the row in mongo, which will cause the 'u' op to
+      # delete it from SQL.
+
+      @streamer.handle_op({ 'ns' => 'mosql_test.collection',
+                            'op' => 'u',
+                            'o2' => { '_id' => o['_id'] },
+                            'o'  => { '$set' => { 'var' => 100 } },
+                          })
+      assert_equal(0, sequel[:sqltable].count(:_id => o['_id'].to_s))
     end
 
     it 'handle "u" ops with $set and a renamed _id' do
@@ -262,7 +289,7 @@ EOF
             @streamer.handle_op({ 'ns' => 'mosql_test.collection',
                                   'op' => 'u',
                                   'o2' => { '_id' => 'a' },
-                                  'o'  => { 'var' => 1 << 70 },
+                                  'o'  => { 'var' => 1 << 62 },
                                 })
           end
         end
@@ -272,7 +299,7 @@ EOF
           @streamer.handle_op({ 'ns' => 'mosql_test.collection',
                                 'op' => 'u',
                                 'o2' => { '_id' => 'a' },
-                                'o'  => { 'var' => 1 << 70 },
+                                'o'  => { 'var' => 1 << 62 },
                               })
           assert_equal(0, sequel[:sqltable].where(:_id => 'a').count)
         end

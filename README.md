@@ -1,5 +1,8 @@
 # MoSQL: a MongoDB → SQL streaming translator
 
+> _**MoSQL is no longer being actively maintained.**_
+> _If you are interested in helping maintain this repository, please let us know.  We would love for it to find a forever home with someone who can give it the love it needs!_
+
 At Stripe, we love MongoDB. We love the flexibility it gives us in
 changing data schemas as we grow and learn, and we love its
 operational properties. We love replsets. We love the uniform query
@@ -163,7 +166,7 @@ cause `mosql` to drop tables, create them anew, and do another import.
 Normaly, MoSQL will scan through a list of the databases on the mongo
 server you connect to. You avoid this behavior by specifiying a specific
 mongo db to connect to with the `--only-db [dbname]` option. This is
-useful for hosted services which do not let you list all databases (via 
+useful for hosted services which do not let you list all databases (via
 the `listDatabases` command).
 
 ## Schema mismatches and _extra_props
@@ -176,7 +179,8 @@ If it encounters a MongoDB object with fields not listed in the
 collection map, it will discard the extra fields, unless
 `:extra_props` is set in the `:meta` hash. If it is, it will collect
 any missing fields, JSON-encode them in a hash, and store the
-resulting text in `_extra_props` in SQL.
+resulting text in `_extra_props` in SQL. You can set `:extra_props`
+to use `JSON`, `JSONB`, or `TEXT`.
 
 As of PostgreSQL 9.3, you can declare columns as type "JSON" and use
 the [native JSON support][pg-json] to inspect inside of JSON-encoded
@@ -209,10 +213,27 @@ authentication, you must:
 e.g.
 
 ```
-mosql --mongo mongdb://$USER@$PASSWORD:$HOST/admin
+mosql --mongo mongodb://$USER:$PASSWORD@$HOST/admin
 ```
 
-I have not yet tested using MoSQL with 2.4's "roles" support. Drop me
+In order to use MongoDB 2.4's "roles" support (which is different from that in
+2.6), you need to create the user in the admin database, give it explicit read
+access to the databases you want to copy *and* to the `local` database, and
+specify authSource in the URL.  eg, connect to `mydb/admin` with the mongo shell
+and run:
+
+```
+> db.addUser({user: "replicator", pwd: "PASSWORD", roles: [], otherDBRoles: {local: ["read"], sourceDb: ["read"]}})
+```
+
+(Note that `roles: []` ensures that this user has no special access to the
+`admin` database.)  Now specify:
+
+```
+mosql --mongo mongodb://$USER:$PASSWORD@$HOST/sourceDb?authSource=admin
+```
+
+I have not yet tested using MoSQL with 2.6's rewritten "roles" support. Drop me
 a note if you figure out anything I should know.
 
 ## Sharded clusters

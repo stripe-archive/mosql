@@ -1,0 +1,39 @@
+haystackdb:
+  channels:
+    :columns:
+    - id:
+      :source: _id
+      :type: TEXT
+    - site:
+      :source: site
+      :type: TEXT
+    - name:
+      :source: name
+      :type: TEXT
+    - categories:
+      :source: categories
+      :type: TEXT ARRAY
+    - defaultscore:
+      :source: defaultScore
+      :type: FLOAT
+    - hashtags:
+      :source: hashtags
+      :type: TEXT ARRAY
+    - metroradius:
+      :source: metroRadius
+      :type: FLOAT
+    - dfppublisher:
+      :source: dfpPublisher
+      :type: TEXT
+    - mrssfeed:
+      :source: mrssFeed
+      :type: TEXT
+    - hsdma:
+      :source: hsDma
+      :type: TEXT
+    - crawlyt:
+      :source: crawlYT
+      :type: BOOLEAN
+    :meta:
+      :table: channels
+      :extra_props: true

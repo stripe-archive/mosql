@@ -101,10 +101,13 @@ module MoSQL
             primary_key keys
             if meta[:extra_props]
               type =
-                if meta[:extra_props] == "JSON"
-                  "JSON"
+                case meta[:extra_props]
+                when 'JSON'
+                  'JSON'
+                when 'JSONB'
+                  'JSONB'
                 else
-                  "TEXT"
+                  'TEXT'
                 end
               column '_extra_props', type
             end
@@ -159,10 +162,24 @@ module MoSQL
       val
     end
 
-    def fetch_special_source(obj, source)
+    def fetch_exists(obj, dotted)
+      pieces = dotted.split(".")
+      while pieces.length > 1
+        key = pieces.shift
+        obj = obj[key]
+        return false unless obj.is_a?(Hash)
+      end
+      obj.has_key?(pieces.first)
+    end
+
+    def fetch_special_source(obj, source, original)
       case source
       when "$timestamp"
         Sequel.function(:now)
+      when /^\$exists (.+)/
+        # We need to look in the cloned original object, not in the version that
+        # has had some fields deleted.
+        fetch_exists(original, $1)
       else
         raise SchemaError.new("Unknown source: #{source}")
       end
@@ -188,7 +205,15 @@ module MoSQL
     def transform(ns, obj, schema=nil)
       schema ||= find_ns!(ns)
 
-      obj = obj.dup
+      original = obj
+
+      # Do a deep clone, because we're potentially going to be
+      # mutating embedded objects.
+      # Bikash - Sep 8, 2016
+      # failure due ot large doc. changing below line
+      #      obj = BSON.deserialize(BSON.serialize(obj))
+      obj = BSON.deserialize(BSON::BSON_CODER.serialize(obj, false, false, 16*1024*1024))
+      
       row = []
       schema[:columns].each do |col|
 
@@ -196,7 +221,7 @@ module MoSQL
         type = col[:type]
 
         if source.start_with?("$")
-          v = fetch_special_source(obj, source)
+          v = fetch_special_source(obj, source, original)
         else
           v = fetch_and_delete_dotted(obj, source)
           case v

@@ -1,0 +1,28 @@
+description "Mosql init"
+author      "Bikash Mishra"
+
+start on filesystem or runlevel [2345]
+stop on shutdown
+
+# respawn the job up to 10 times within a 5 second period.                                                                                                          
+# If the job exceeds these values, it will be stopped and                                                                                                           
+# marked as failed.                                                                                                                                                 
+respawn
+respawn limit 10 5
+
+script
+
+    echo $$ > /var/run/mosql-init.pid
+    exec /usr/local/bin/mosql  -c /home/ec2-user/##yml_dir##/collections.yml --service ##service_name## --only-db haystackdb --sql postgres://##pg_user##:##pg_pwd##@##pg_url##:5432/dashboarddb --mongo mongodb://##mongo_user##:##mongo_pwd##@##mongo_url##/?readPreference=seco\
+ndaryPreferred >> /var/log/mosql-init.log
+
+end script
+
+pre-start script
+    echo "[`date`] MoSQL Starting" >> /var/log/mosql-init.log
+end script
+
+pre-stop script
+    rm /var/run/mosql-init.pid
+    echo "[`date`] MoSQL Stopping" >> /var/log/mosql-init.log
+end script
