@@ -2,6 +2,7 @@ collections.yml
 /.bundle/
 Gemfile.lock
 
+haystack
 .idea/
 *.gem
 notes/
