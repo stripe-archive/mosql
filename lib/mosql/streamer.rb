@@ -6,7 +6,7 @@ module MoSQL
     # How long to wait before saving unsaved inserts to postgres
     INSERT_BATCH_TIMELIMIT = 5.0
 
-    attr_reader :options, :tailer
+    attr_reader :options, :tailer, :batch_done
 
     NEW_KEYS = [:options, :tailer, :mongo, :sql, :schema]
 
@@ -21,7 +21,7 @@ module MoSQL
       # Hash to from namespace -> inserts that need to be made
       @batch_insert_lists = Hash.new { |hash, key| hash[key] = [] }
       @done = false
-      @canUpdateTimestamp = true
+      @batch_done = true
     end
 
     def stop
@@ -57,9 +57,8 @@ module MoSQL
     def bulk_upsert(table, ns, items)
       begin
         @schema.copy_data(table.db, ns, items)
-        tailer.batch_done
-        @canUpdateTimestamp = true
-      rescue Sequel::DatabaseError => e
+        @batch_done = true
+      rescue => e #Sequel::DatabaseError
         log.debug("Bulk insert error (#{e}), attempting invidual upserts...")
         cols = @schema.all_columns(@schema.find_ns(ns))
         items.each do |it|
@@ -69,6 +68,7 @@ module MoSQL
             @sql.upsert!(table, @schema.primary_sql_key_for_ns(ns), h)
           end
         end
+        @batch_done = true
       end
     end
 
@@ -173,6 +173,15 @@ module MoSQL
       end
     end
 
+    def saveAll(force = false)
+      return unless @batch_done
+      if force
+        tailer.save_state
+      else
+        tailer.maybe_save_state
+      end
+    end
+
     def optail
       tail_from = options[:tail_from]
       if tail_from.is_a? Time
@@ -190,10 +199,13 @@ module MoSQL
           last_batch_insert = time
           do_batch_inserts
         end
+
+        saveAll
       end
 
       log.info("Finishing, doing last batch inserts.")
       do_batch_inserts
+      saveAll
     end
 
     # Handle $set, $inc and other operators in updates. Done by querying
@@ -234,7 +246,7 @@ module MoSQL
         to_batch = @batch_insert_lists[namespace]
         @batch_insert_lists[namespace] = []
         if to_batch.empty?
-          @canUpdateTimestamp = true
+          @batch_done = true
           return
         end
 
@@ -275,7 +287,7 @@ module MoSQL
         if collection_name == 'system.indexes'
           log.info("Skipping index update: #{op.inspect}")
         else
-          @canUpdateTimestamp = false
+          @batch_done = false
           queue_to_batch_insert(op, ns)
         end
       when 'u'
@@ -316,10 +328,6 @@ module MoSQL
         end
       else
         log.info("Skipping unknown op #{op.inspect}")
-      end
-
-      if @canUpdateTimestamp
-        tailer.batch_done
       end
     end
   end

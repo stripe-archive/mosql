@@ -173,7 +173,12 @@ module MoSQL
       end
 
       unless options[:skip_tail]
-        @streamer.optail
+        begin
+          @streamer.optail
+        rescue => e
+          puts 'Unexpected error. Attempting to save'
+          @streamer.saveAll(true)
+        end
       end
     end
   end
