@@ -8,3 +8,5 @@ haystack
 notes/
 test/docker/
 Gemfile.lock
+
+.rakeTasks
