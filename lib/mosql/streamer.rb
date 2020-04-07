@@ -21,6 +21,7 @@ module MoSQL
       # Hash to from namespace -> inserts that need to be made
       @batch_insert_lists = Hash.new { |hash, key| hash[key] = [] }
       @done = false
+      @canUpdateTimestamp = true
     end
 
     def stop
@@ -56,6 +57,8 @@ module MoSQL
     def bulk_upsert(table, ns, items)
       begin
         @schema.copy_data(table.db, ns, items)
+        tailer.batch_done
+        @canUpdateTimestamp = true
       rescue Sequel::DatabaseError => e
         log.debug("Bulk insert error (#{e}), attempting invidual upserts...")
         cols = @schema.all_columns(@schema.find_ns(ns))
@@ -230,7 +233,10 @@ module MoSQL
       else
         to_batch = @batch_insert_lists[namespace]
         @batch_insert_lists[namespace] = []
-        return if to_batch.empty?
+        if to_batch.empty?
+          @canUpdateTimestamp = true
+          return
+        end
 
         table = @sql.table_for_ns(namespace)
         log.debug("Batch inserting #{to_batch.length} items to #{table} from #{namespace}.")
@@ -269,6 +275,7 @@ module MoSQL
         if collection_name == 'system.indexes'
           log.info("Skipping index update: #{op.inspect}")
         else
+          @canUpdateTimestamp = false
           queue_to_batch_insert(op, ns)
         end
       when 'u'
@@ -309,6 +316,10 @@ module MoSQL
         end
       else
         log.info("Skipping unknown op #{op.inspect}")
+      end
+
+      if @canUpdateTimestamp
+        tailer.batch_done
       end
     end
   end

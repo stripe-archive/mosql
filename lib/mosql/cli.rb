@@ -160,7 +160,7 @@ module MoSQL
       metadata_table = MoSQL::Tailer.create_table(@sql.db, 'mosql_tailers')
 
       @tailer = MoSQL::Tailer.new([@mongo], :existing, metadata_table,
-                                  :service => options[:service])
+                                  {:service => options[:service], :batch => true})
 
       @streamer = Streamer.new(:options => @options,
                                :tailer  => @tailer,
