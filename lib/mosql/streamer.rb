@@ -189,7 +189,7 @@ module MoSQL
       end
 
       last_batch_insert = Time.now
-      tailer.tail(:from => tail_from)
+      tailer.tail(:from => tail_from, :filter => options[:oplog_filter])
       until @done
         tailer.stream(1000) do |op|
           handle_op(op)
