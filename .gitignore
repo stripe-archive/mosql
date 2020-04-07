@@ -1,3 +1,9 @@
 collections.yml
 /.bundle/
 Gemfile.lock
+
+.idea/
+*.gem
+notes/
+test/docker/
+.rakeTasks
